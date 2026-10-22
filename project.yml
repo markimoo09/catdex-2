@@ -1,0 +1,75 @@
+name: CatDex
+options:
+  bundleIdPrefix: com.marklumbay
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "18.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: 4622G4R23G
+    MARKETING_VERSION: "2.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  CatDex:
+    type: application
+    platform: iOS
+    sources:
+      - CatDex
+    info:
+      path: CatDex/Info.plist
+      properties:
+        CFBundleDisplayName: CatDex
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        NSCameraUsageDescription: CatDex uses the camera to acquire cats for your collection.
+        NSPhotoLibraryAddUsageDescription: CatDex saves certificates of provenance to your photo library.
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIUserInterfaceStyle: Dark
+        UIStatusBarStyle: UIStatusBarStyleLightContent
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.marklumbay.catdex.maison
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        OTHER_LDFLAGS: ["-weak_framework", "FoundationModels"]
+  CatDexTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - CatDexTests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: CatDex
+  CatDexUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - CatDexUITests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: CatDex
+schemes:
+  CatDex:
+    build:
+      targets:
+        CatDex: all
+        CatDexTests: [test]
+        CatDexUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - CatDexTests
+        - CatDexUITests
