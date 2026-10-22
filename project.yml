@@ -31,8 +31,8 @@ targets:
         NSPhotoLibraryAddUsageDescription: CatDex saves certificates of provenance to your photo library.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
-        UIUserInterfaceStyle: Dark
-        UIStatusBarStyle: UIStatusBarStyleLightContent
+        UIUserInterfaceStyle: Light
+        UIStatusBarStyle: UIStatusBarStyleDarkContent
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.marklumbay.catdex.maison

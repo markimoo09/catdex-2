@@ -19,52 +19,18 @@ struct LotSummary: Equatable {
     }
 }
 
-/// Patronage tiers and Exhibitions, derived live from the collection — no save data.
-struct Patronage: Equatable {
-
-    struct Tier: Equatable {
-        var name: String
-        var threshold: Int
-    }
-
-    static let tiers: [Tier] = [
-        Tier(name: "Visitor", threshold: 0),
-        Tier(name: "Friend of the Maison", threshold: 1),
-        Tier(name: "Patron", threshold: 8),
-        Tier(name: "Benefactor", threshold: 24),
-        Tier(name: "Grand Patron", threshold: 60),
-        Tier(name: "Founder's Circle", threshold: 150),
-    ]
-
-    let prestige: Int
+/// Collection-wide figures and Exhibitions, derived live from the lots.
+struct CollectionStats: Equatable {
     let appraisal: Int
     let lotCount: Int
     let memberSince: Date?
     let exhibitions: [Exhibition]
 
     init(lots: [LotSummary], calendar: Calendar = .current) {
-        prestige = lots.reduce(0) { $0 + $1.marque.prestige }
         appraisal = lots.reduce(0) { $0 + $1.valuation }
         lotCount = lots.count
         memberSince = lots.map(\.acquiredAt).min()
         exhibitions = Exhibition.evaluate(lots, calendar: calendar)
-    }
-
-    var tierIndex: Int {
-        Self.tiers.lastIndex { prestige >= $0.threshold } ?? 0
-    }
-
-    var tier: Tier { Self.tiers[tierIndex] }
-
-    var nextTier: Tier? {
-        tierIndex + 1 < Self.tiers.count ? Self.tiers[tierIndex + 1] : nil
-    }
-
-    /// Progress toward the next tier, 0...1 (1 at the top tier).
-    var progress: Double {
-        guard let next = nextTier else { return 1 }
-        let span = Double(next.threshold - tier.threshold)
-        return min(1, max(0, Double(prestige - tier.threshold) / span))
     }
 
     var completedExhibitions: Int { exhibitions.filter(\.isComplete).count }

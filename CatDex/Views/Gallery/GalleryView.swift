@@ -5,91 +5,43 @@ struct GalleryView: View {
     let zoom: Namespace.ID
     @Environment(Router.self) private var router
     @Query(sort: \Acquisition.lotNumber, order: .reverse) private var lots: [Acquisition]
-    @Namespace private var modeUnderline
 
     var body: some View {
         @Bindable var router = router
-        ZStack(alignment: .top) {
-            GalleryWall().ignoresSafeArea()
+        VStack(spacing: 10) {
+            HStack(alignment: .lastTextBaseline) {
+                Text("Gallery")
+                    .font(Theme.display(26))
+                    .tracking(Theme.displayTracking)
+                    .foregroundStyle(Theme.ink)
+                Spacer()
+                Picker("View", selection: $router.galleryMode) {
+                    ForEach(GalleryMode.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 200)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
 
             if lots.isEmpty {
-                EmptySalon { router.isAcquiring = true }
-                    .frame(maxHeight: .infinity)
+                Spacer()
+                WelcomeCard { router.isAcquiring = true }
+                    .padding(.horizontal, 16)
+                Spacer()
             } else {
                 switch router.galleryMode {
-                case .salon: SalonHang(lots: lots, zoom: zoom)
-                case .catalogue: CatalogueGrid(lots: lots, zoom: zoom)
+                case .grid: CatalogueGrid(lots: lots, zoom: zoom)
+                case .hang: SalonHang(lots: lots, zoom: zoom)
                 }
             }
-
-            header
         }
         .toolbar(.hidden, for: .navigationBar)
-    }
-
-    private var header: some View {
-        VStack(spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("Gallery")
-                    .font(Theme.display(34))
-                    .foregroundStyle(Theme.ivory)
-                Spacer()
-                SmallCaps("\(lots.count) \(lots.count == 1 ? "lot" : "lots")", size: 9.5, color: Theme.mute, tracking: 2)
-            }
-            HStack(spacing: 22) {
-                ForEach(GalleryMode.allCases) { mode in
-                    let selected = router.galleryMode == mode
-                    Button {
-                        withAnimation(.smooth(duration: 0.35)) { router.galleryMode = mode }
-                    } label: {
-                        VStack(spacing: 6) {
-                            SmallCaps(mode.rawValue, size: 10, color: selected ? Theme.champagne : Theme.mute)
-                            ZStack {
-                                Rectangle().fill(.clear).frame(height: 1)
-                                if selected {
-                                    Rectangle().fill(Theme.champagne).frame(height: 1)
-                                        .matchedGeometryEffect(id: "underline", in: modeUnderline)
-                                }
-                            }
-                        }
-                        .fixedSize()
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(selected ? .isSelected : [])
-                }
-                Spacer()
-            }
-            .sensoryFeedback(.selection, trigger: router.galleryMode)
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
-        .background {
-            LinearGradient(colors: [Theme.ink, Theme.ink.opacity(0.85), .clear], startPoint: .top, endPoint: .bottom)
-                .ignoresSafeArea()
-                .padding(.bottom, -30)
-        }
+        .sensoryFeedback(.selection, trigger: router.galleryMode)
     }
 }
 
-/// Dark gallery wall with a wainscot line and a polished floor.
-struct GalleryWall: View {
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .top) {
-                LinearGradient(colors: [Color(hex: 0x15140F), Color(hex: 0x0E0E0D), Color(hex: 0x0A0A0A)],
-                               startPoint: .top, endPoint: .bottom)
-                Rectangle()
-                    .fill(LinearGradient(colors: [Color(hex: 0x060606), Color(hex: 0x111110)], startPoint: .top, endPoint: .bottom))
-                    .frame(height: proxy.size.height * 0.3)
-                    .frame(maxHeight: .infinity, alignment: .bottom)
-            }
-            .filmGrain(0.05)
-        }
-    }
-}
-
-// MARK: - Salon Hang
+// MARK: - Showcase
 
 struct SalonHang: View {
     let lots: [Acquisition]
@@ -98,18 +50,17 @@ struct SalonHang: View {
     @State private var focused: UUID?
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 6) {
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 0) {
                     ForEach(lots) { lot in
-                        HangItem(lot: lot, zoom: zoom) { router.galleryPath.append(lot.id) }
+                        HangItem(lot: lot, zoom: zoom) { router.paths[.gallery, default: []].append(lot.id) }
                             .containerRelativeFrame(.horizontal)
                             .scrollTransition(.interactive, axis: .horizontal) { content, phase in
                                 content
                                     .scaleEffect(1 - abs(phase.value) * 0.12)
-                                    .opacity(1 - abs(phase.value) * 0.55)
-                                    .rotation3DEffect(.degrees(phase.value * -18), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
-                                    .offset(x: phase.value * -30)
+                                    .opacity(1 - abs(phase.value) * 0.5)
+                                    .rotation3DEffect(.degrees(phase.value * -16), axis: (x: 0, y: 1, z: 0), perspective: 0.6)
                             }
                             .id(lot.id)
                     }
@@ -121,29 +72,19 @@ struct SalonHang: View {
             .scrollIndicators(.hidden)
             .sensoryFeedback(.selection, trigger: focused)
 
-            counter
-                .padding(.top, 10)
-                .padding(.bottom, 108)
+            let index = (lots.firstIndex { $0.id == focused } ?? 0) + 1
+            HStack(spacing: 5) {
+                ForEach(Array(lots.prefix(12).enumerated()), id: \.offset) { i, _ in
+                    Capsule()
+                        .fill(i + 1 == index ? Theme.rose : Theme.hairline)
+                        .frame(width: i + 1 == index ? 16 : 6, height: 6)
+                }
+            }
+            .animation(.spring(duration: 0.3), value: index)
+            .padding(.bottom, 100)
+            .accessibilityLabel("Lot \(index) of \(lots.count)")
         }
-        .padding(.top, 96)
         .onAppear { if focused == nil { focused = lots.first?.id } }
-    }
-
-    private var counter: some View {
-        let index = (lots.firstIndex { $0.id == focused } ?? 0) + 1
-        return HStack(spacing: 10) {
-            Text(String(format: "%02d", index))
-                .font(Theme.display(16))
-                .foregroundStyle(Theme.ivory)
-                .contentTransition(.numericText(value: Double(index)))
-                .animation(.smooth, value: index)
-            Rectangle().fill(Theme.champagne.opacity(0.5)).frame(width: 34, height: 0.5)
-            Text(String(format: "%02d", lots.count))
-                .font(Theme.display(16))
-                .foregroundStyle(Theme.mute)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Lot \(index) of \(lots.count)")
     }
 }
 
@@ -153,83 +94,37 @@ struct HangItem: View {
     var open: () -> Void
 
     var body: some View {
-        let presentation = lot.presentation
-        VStack(spacing: 0) {
+        VStack(spacing: 12) {
             Button(action: open) {
-                ZStack(alignment: .bottom) {
-                    // Spotlight cone.
-                    SpotCone()
-                        .fill(RadialGradient(colors: [lot.marque.accent.opacity(0.22), .clear],
-                                             center: .top, startRadius: 0, endRadius: 360))
-                        .frame(width: 300)
-                        .blendMode(.screen)
-
-                    VStack(spacing: 0) {
-                        CutoutArt(image: presentation.cutout, isCameo: lot.isCameo, marque: lot.marque)
-                            .frame(maxWidth: 260, maxHeight: 270)
-                            .overlay {
-                                if lot.marque.foilStrength > 0 && !lot.isCameo {
-                                    FoilSheen(strength: lot.marque.foilStrength * 0.45, hueShift: Double(lot.lotNumber % 7) / 7, marque: lot.marque)
-                                        .mask(CutoutArt(image: presentation.cutout, isCameo: false, shadow: false))
-                                }
-                            }
-                            .tiltParallax(5)
-                            .padding(.bottom, -6)
-                        Plinth(width: 168, plaque: "\(Format.lot(lot.lotNumber).uppercased()) · \(lot.name.uppercased())")
-                    }
-                }
-                .matchedTransitionSource(id: lot.id, in: zoom)
+                LotCard(lot: lot.presentation)
+                    .frame(maxWidth: 290)
+                    .matchedTransitionSource(id: lot.id, in: zoom)
             }
             .buttonStyle(PressScale())
-
-            // Floor reflection.
-            CutoutArt(image: presentation.cutout, isCameo: lot.isCameo, marque: lot.marque, shadow: false)
-                .frame(maxWidth: 200, maxHeight: 60)
-                .scaleEffect(x: 1, y: -1)
-                .opacity(0.08)
-                .blur(radius: 2)
-                .mask(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .bottom))
-                .accessibilityHidden(true)
-
-            VStack(spacing: 8) {
-                HStack(spacing: 8) {
-                    Hallmark(marque: lot.marque, size: 14)
-                    SmallCaps(lot.marque.displayName, size: 9.5, color: lot.marque.accent)
-                }
-                Text(lot.name)
-                    .font(Theme.display(30))
-                    .foregroundStyle(Theme.ivory)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.7)
-                Text(lot.epithet)
-                    .font(Theme.serifItalic(15))
-                    .foregroundStyle(Theme.parchment)
-                    .lineLimit(1)
-                SmallCaps("Estimate  \(Format.estimate(lot.valuation))", size: 8.5, color: Theme.mute, tracking: 1.6)
-                    .padding(.top, 2)
+            HStack(spacing: 14) {
+                stat("Estimate", Format.compact(lot.valuation) + " gns")
+                Rectangle().fill(Theme.hairline).frame(width: 0.5, height: 26)
+                stat("Show wins", "\(lot.showWins)")
+                Rectangle().fill(Theme.hairline).frame(width: 0.5, height: 26)
+                let top = lot.temperament.dominant
+                stat(top.displayName, "\(lot.temperament[top])")
             }
-            .padding(.horizontal, 32)
-            .padding(.top, 4)
+            .pearlCard(16, padding: 10)
         }
+        .padding(.horizontal, 24)
         .frame(maxHeight: .infinity)
     }
-}
 
-/// A soft trapezoid of light from the ceiling.
-struct SpotCone: Shape {
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        p.move(to: CGPoint(x: rect.midX - rect.width * 0.12, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.midX + rect.width * 0.12, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        p.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        p.closeSubpath()
-        return p
+    private func stat(_ label: String, _ value: String) -> some View {
+        VStack(spacing: 1) {
+            Text(value).font(Theme.number(15)).foregroundStyle(Theme.ink)
+            Text(label).font(Theme.caption(10.5)).foregroundStyle(Theme.ink3)
+        }
+        .frame(minWidth: 64)
     }
 }
 
-// MARK: - Catalogue
+// MARK: - Collection grid
 
 struct CatalogueGrid: View {
     let lots: [Acquisition]
@@ -237,45 +132,52 @@ struct CatalogueGrid: View {
     @Environment(Router.self) private var router
     @State private var query = ""
     @State private var order: Order = .newest
+    @State private var marque: Marque?
 
     enum Order: String, CaseIterable, Identifiable {
         case newest = "Newest"
         case marque = "Marque"
         case estimate = "Estimate"
+        case wins = "Show wins"
         var id: String { rawValue }
     }
 
     private var visible: [Acquisition] {
-        let filtered = query.isEmpty ? lots : lots.filter {
+        var filtered = query.isEmpty ? lots : lots.filter {
             $0.name.localizedCaseInsensitiveContains(query)
                 || $0.epithet.localizedCaseInsensitiveContains(query)
-                || $0.marque.displayName.localizedCaseInsensitiveContains(query)
                 || $0.palette.contains { $0.name.localizedCaseInsensitiveContains(query) }
         }
+        if let marque { filtered = filtered.filter { $0.marque == marque } }
         switch order {
         case .newest: return filtered.sorted { $0.lotNumber > $1.lotNumber }
         case .marque: return filtered.sorted { ($0.marque, $0.valuation) > ($1.marque, $1.valuation) }
         case .estimate: return filtered.sorted { $0.valuation > $1.valuation }
+        case .wins: return filtered.sorted { $0.showWins > $1.showWins }
         }
     }
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
+            VStack(spacing: 12) {
                 controls
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 18) {
+                marqueFilter
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 12) {
                     ForEach(visible) { lot in
-                        Button { router.galleryPath.append(lot.id) } label: {
-                            VStack(alignment: .leading, spacing: 8) {
+                        Button { router.paths[.gallery, default: []].append(lot.id) } label: {
+                            VStack(alignment: .leading, spacing: 4) {
                                 LotCard(lot: lot.presentation, compact: true, showsFoil: false)
                                     .matchedTransitionSource(id: lot.id, in: zoom)
-                                HStack {
-                                    SmallCaps(Format.lot(lot.lotNumber), size: 8, color: Theme.mute, tracking: 1.4)
-                                    Spacer()
-                                    Text(lot.valuation.formatted())
-                                        .font(Theme.numerals(11))
-                                        .foregroundStyle(Theme.parchment)
-                                    + Text(" gns").font(Theme.serif(9)).foregroundStyle(Theme.mute)
+                                HStack(spacing: 4) {
+                                    CoinGlyph(size: 10)
+                                    Text(Format.compact(lot.valuation))
+                                        .font(Theme.number(11, weight: .semibold))
+                                        .foregroundStyle(Theme.ink2)
+                                    Spacer(minLength: 0)
+                                    if lot.showWins > 0 {
+                                        Image(systemName: "rosette").font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.rose)
+                                        Text("\(lot.showWins)").font(Theme.number(11, weight: .semibold)).foregroundStyle(Theme.ink2)
+                                    }
                                 }
                                 .padding(.horizontal, 2)
                             }
@@ -285,46 +187,78 @@ struct CatalogueGrid: View {
                 }
                 if visible.isEmpty {
                     Text("No lots match.")
-                        .font(Theme.serifItalic(16))
-                        .foregroundStyle(Theme.mute)
-                        .padding(.top, 40)
+                        .font(Theme.body(15))
+                        .foregroundStyle(Theme.ink3)
+                        .padding(.top, 30)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 100)
-            .padding(.bottom, 120)
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
+            .padding(.bottom, 110)
         }
         .scrollIndicators(.hidden)
         .scrollDismissesKeyboard(.immediately)
     }
 
     private var controls: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 8) {
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.mute)
-                TextField("", text: $query, prompt: Text("Search the catalogue").foregroundStyle(Theme.mute))
-                    .font(Theme.serifItalic(15))
-                    .foregroundStyle(Theme.ivory)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.ink3)
+                TextField("", text: $query, prompt: Text("Search by name or colour").foregroundStyle(Theme.ink3))
+                    .font(Theme.body(15))
+                    .foregroundStyle(Theme.ink)
                     .submitLabel(.search)
             }
-            .padding(.horizontal, 14)
-            .frame(height: 42)
-            .maisonGlass(in: Capsule())
+            .padding(.horizontal, 12)
+            .frame(height: 38)
+            .background(Capsule().fill(Theme.surface))
+            .overlay(Capsule().stroke(Theme.hairline, lineWidth: 0.5))
 
             Menu {
                 Picker("Order", selection: $order) {
                     ForEach(Order.allCases) { Text($0.rawValue).tag($0) }
                 }
             } label: {
-                Image(systemName: "line.3.horizontal.decrease")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Theme.champagne)
-                    .frame(width: 42, height: 42)
-                    .maisonGlass(in: Circle())
+                Image(systemName: "arrow.up.arrow.down")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.roseDeep)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Theme.surface))
+                    .overlay(Circle().stroke(Theme.hairline, lineWidth: 0.5))
             }
             .accessibilityLabel("Order by \(order.rawValue)")
         }
+    }
+
+    private var marqueFilter: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 6) {
+                chip(nil, "All")
+                ForEach(Marque.allCases) { chip($0, $0.displayName) }
+            }
+            .padding(.horizontal, 16)
+        }
+        .scrollIndicators(.hidden)
+        .padding(.horizontal, -16)
+    }
+
+    private func chip(_ value: Marque?, _ title: String) -> some View {
+        let selected = marque == value
+        return Button {
+            withAnimation(.snappy) { marque = value }
+        } label: {
+            HStack(spacing: 5) {
+                if let value { Hallmark(marque: value, size: 10) }
+                Text(title).font(Theme.caption(12.5, weight: .semibold))
+            }
+            .foregroundStyle(selected ? .white : Theme.ink2)
+            .padding(.horizontal, 12)
+            .frame(height: 30)
+            .background(Capsule().fill(selected ? AnyShapeStyle(Theme.roseGold) : AnyShapeStyle(Theme.surface)))
+            .overlay(Capsule().stroke(Theme.hairline, lineWidth: selected ? 0 : 0.5))
+        }
+        .buttonStyle(.plain)
     }
 }

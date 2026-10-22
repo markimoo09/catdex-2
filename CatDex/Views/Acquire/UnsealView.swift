@@ -120,12 +120,11 @@ struct UnsealView: View {
 
     private var background: some View {
         ZStack {
-            Theme.ink
-            Spotlight(color: lot.marque == .noir ? Theme.goldLight : lot.marque.accent,
-                      intensity: phase >= .presented ? 0.24 : 0.12)
+            Theme.ground
+            Spotlight(color: lot.marque.accent, intensity: phase >= .presented ? 0.35 : 0.18)
             if phase >= .presented {
                 PaletteBackdrop(palette: lot.palette)
-                    .opacity(0.3)
+                    .opacity(0.55)
                     .mask(RadialGradient(colors: [.white, .clear], center: .center, startRadius: 60, endRadius: 460))
                     .transition(.opacity)
             }
@@ -137,32 +136,32 @@ struct UnsealView: View {
     private var paper: LinearGradient {
         lot.marque == .noir
             ? LinearGradient(colors: [Color(hex: 0x1E1D1B), Color(hex: 0x0E0E0E)], startPoint: .top, endPoint: .bottom)
-            : LinearGradient(colors: [Color(hex: 0xF2EBDD), Color(hex: 0xDDD2BE)], startPoint: .top, endPoint: .bottom)
+            : LinearGradient(colors: [Color.white, Color(hex: 0xF4ECE6)], startPoint: .top, endPoint: .bottom)
     }
 
     private var liner: Color {
         switch lot.marque {
-        case .ivory: Color(hex: 0x3B342A)
-        case .silver: Color(hex: 0x2B3037)
-        case .gold: Color(hex: 0x3A2C12)
-        case .platinum: Color(hex: 0x2E2F38)
-        case .noir: Color(hex: 0x2A2213)
+        case .ivory: Color(hex: 0xEADCC6)
+        case .silver: Color(hex: 0xD9DEE6)
+        case .gold: Color(hex: 0xEBCF97)
+        case .platinum: Color(hex: 0xDCD7EE)
+        case .noir: Color(hex: 0x3A2E3C)
         }
     }
 
-    private var edge: Color { lot.marque == .noir ? Theme.gold.opacity(0.7) : Color(hex: 0xBFB29A) }
+    private var edge: Color { lot.marque == .noir ? Theme.rose.opacity(0.8) : Color(hex: 0xD9C3B7) }
 
     private func envelopeBack(W: CGFloat, H: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: 4)
             .fill(liner)
             .overlay(
-                Guilloche(color: lot.marque.accent.opacity(0.12), lineWidth: 0.4, petals: 12, bands: 2, strands: 18)
+                Guilloche(color: lot.marque.accent.opacity(0.35), lineWidth: 0.4, petals: 12, bands: 2, strands: 18)
                     .frame(width: W * 0.9, height: W * 0.9)
                     .clipped()
             )
             .clipShape(RoundedRectangle(cornerRadius: 4))
             .frame(width: W, height: H)
-            .shadow(color: .black.opacity(0.6), radius: 26, y: 18)
+            .shadow(color: Color(hex: 0x8A5A50, alpha: 0.3), radius: 22, y: 14)
     }
 
     private func pocket(W: CGFloat, H: CGFloat) -> some View {
@@ -171,10 +170,10 @@ struct UnsealView: View {
                 .fill(paper)
             EnvelopePocket()
                 .stroke(edge.opacity(0.6), lineWidth: 0.6)
-            Text("MAISON CATDEX")
-                .font(Theme.label(7, weight: .semibold))
-                .tracking(3)
-                .foregroundStyle(lot.marque == .noir ? Theme.gold.opacity(0.6) : Color(hex: 0x8C7E66))
+            Text("Maison CatDex")
+                .font(Theme.caption(8, weight: .semibold))
+                .tracking(2)
+                .foregroundStyle(lot.marque == .noir ? Theme.roseLight.opacity(0.7) : Theme.roseDeep.opacity(0.7))
                 .offset(y: H * 0.36)
         }
         .frame(width: W, height: H)
@@ -189,7 +188,7 @@ struct UnsealView: View {
         .frame(width: W, height: H * 0.6)
         .rotation3DEffect(.degrees(flapAngle), axis: (x: 1, y: 0, z: 0), anchor: .top, perspective: 0.45)
         .offset(y: H * 0.3)
-        .shadow(color: .black.opacity(flapInside ? 0 : 0.25), radius: 3, y: 2)
+        .shadow(color: Color(hex: 0x8A5A50, alpha: flapInside ? 0 : 0.2), radius: 3, y: 2)
         .allowsHitTesting(false)
     }
 
@@ -234,20 +233,25 @@ struct UnsealView: View {
         VStack(spacing: 0) {
             ZStack {
                 if phase < .presented {
-                    VStack(spacing: 10) {
-                        SmallCaps("Sealed for you", size: 10, color: Theme.champagne, tracking: 4)
+                    VStack(spacing: 4) {
+                        Text("Sealed for you")
+                            .font(Theme.caption(13, weight: .semibold))
+                            .foregroundStyle(Theme.roseDeep)
                         Text(Format.lot(lot.lotNumber))
-                            .font(Theme.displayItalic(26))
-                            .foregroundStyle(Theme.ivory)
+                            .font(Theme.display(28))
+                            .tracking(Theme.displayTracking)
+                            .foregroundStyle(Theme.ink)
                     }
                     .transition(.opacity)
                 } else {
-                    VStack(spacing: 6) {
-                        SmallCaps(Format.lot(lot.lotNumber), size: 10, color: Theme.parchment, tracking: 3)
-                        Text(lot.marque.displayName.uppercased())
-                            .font(Theme.display(38))
-                            .tracking(10)
-                            .foregroundStyle(lot.marque == .noir ? Theme.goldGradient : lot.marque.metal)
+                    VStack(spacing: 2) {
+                        Text(Format.lot(lot.lotNumber))
+                            .font(Theme.number(13, weight: .semibold))
+                            .foregroundStyle(Theme.ink3)
+                        Text(lot.marque.displayName)
+                            .font(.system(size: 40, weight: .heavy))
+                            .tracking(-1)
+                            .foregroundStyle(lot.marque == .noir ? Theme.ink : lot.marque.toneInk)
                             .textRenderer(GlyphReveal(progress: nameReveal, spread: 0.6))
                     }
                     .transition(.opacity)
@@ -259,19 +263,32 @@ struct UnsealView: View {
             Spacer()
 
             if phase == .presented {
-                VStack(spacing: 16) {
-                    VStack(spacing: 2) {
-                        SmallCaps("Estimate", size: 8.5, color: Theme.mute)
-                        Ticker(value: shownValue, font: Theme.numerals(26))
-                            .foregroundStyle(Theme.ivory)
+                VStack(spacing: 12) {
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("Estimate").font(Theme.caption(11)).foregroundStyle(Theme.ink3)
+                            Ticker(value: shownValue, font: Theme.number(20))
+                                .foregroundStyle(Theme.ink)
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 3) {
+                            CoinAmount(value: lot.marque.finderFee, size: 13, signed: true)
+                            Text("+\(lot.marque.xp) XP")
+                                .font(Theme.number(13, weight: .heavy))
+                                .foregroundStyle(Theme.roseDeep)
+                        }
                     }
-                    HStack(spacing: 12) {
+                    .pearlCard(18, padding: 12)
+                    HStack(spacing: 10) {
                         Button("Release", action: onRelease)
-                            .buttonStyle(HairlineButtonStyle(color: Theme.parchment))
-                        Button("Add to Collection", action: add)
-                            .buttonStyle(GoldButtonStyle())
+                            .buttonStyle(SecondaryButtonStyle())
+                        Button(action: add) {
+                            Text("Add to collection").frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
                     }
                 }
+                .padding(.horizontal, 16)
                 .padding(.bottom, 22)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }

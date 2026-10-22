@@ -46,6 +46,7 @@ struct LensView: View {
                     .transition(.opacity)
             }
         }
+        .statusBarHidden()
         .photosPicker(isPresented: $showPicker, selection: $pickerItem, matching: .images, preferredItemEncoding: .current)
         .onChange(of: pickerItem) { _, item in load(item) }
         .task { await camera.start() }
@@ -56,13 +57,13 @@ struct LensView: View {
 
     private var topBar: some View {
         HStack {
-            GlassIconButton(systemName: "xmark", label: "Close") { onClose() }
+            GlassIconButton(systemName: "xmark", label: "Close", dark: true) { onClose() }
             Spacer()
             VStack(spacing: 3) {
-                SmallCaps("The Lens", size: 10, color: Theme.ivory.opacity(0.85), tracking: 3)
+                Text("The Lens").font(Theme.title(15)).foregroundStyle(.white)
                 Text("№ \(lotNumber)")
-                    .font(Theme.displayItalic(15))
-                    .foregroundStyle(Theme.champagne)
+                    .font(Theme.number(12, weight: .semibold))
+                    .foregroundStyle(Theme.roseLight)
             }
             Spacer()
             Color.clear.frame(width: 44, height: 44)
@@ -76,7 +77,7 @@ struct LensView: View {
             Button { showPicker = true } label: {
                 Image(systemName: "photo.on.rectangle.angled")
                     .font(.system(size: 18, weight: .regular))
-                    .foregroundStyle(Theme.ivory)
+                    .foregroundStyle(Color.white)
                     .frame(width: 54, height: 54)
                     .maisonGlass(in: Circle())
                 .contentShape(Circle())
@@ -134,17 +135,17 @@ struct Shutter: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .stroke(locked ? AnyShapeStyle(Theme.goldGradient) : AnyShapeStyle(Theme.ivory.opacity(0.9)), lineWidth: 3)
+                    .stroke(locked ? AnyShapeStyle(Theme.roseGold) : AnyShapeStyle(Color.white.opacity(0.9)), lineWidth: 3)
                     .frame(width: 82, height: 82)
                 Circle()
-                    .fill(locked ? AnyShapeStyle(Theme.goldGradient) : AnyShapeStyle(Theme.ivory))
+                    .fill(locked ? AnyShapeStyle(Theme.roseGold) : AnyShapeStyle(Color.white))
                     .frame(width: 66, height: 66)
                 Aperture()
                     .stroke(Theme.ink.opacity(locked ? 0.6 : 0.25), lineWidth: 1)
                     .frame(width: 30, height: 30)
                     .rotationEffect(.degrees(locked ? 30 : 0))
             }
-            .shadow(color: locked ? Theme.gold.opacity(0.6) : .black.opacity(0.4), radius: locked ? 18 : 8)
+            .shadow(color: locked ? Theme.rose.opacity(0.6) : .black.opacity(0.4), radius: locked ? 18 : 8)
             .animation(.spring(duration: 0.4, bounce: 0.3), value: locked)
         }
         .buttonStyle(PressScale())
@@ -182,15 +183,15 @@ struct Reticle: View {
         let locked = sighting != nil
         ZStack(alignment: .topLeading) {
             CornerBrackets(length: locked ? 26 : 20)
-                .stroke(locked ? AnyShapeStyle(Theme.goldGradient) : AnyShapeStyle(Theme.ivory.opacity(breathe ? 0.55 : 0.3)),
+                .stroke(locked ? AnyShapeStyle(Theme.roseGold) : AnyShapeStyle(Color.white.opacity(breathe ? 0.55 : 0.3)),
                         style: StrokeStyle(lineWidth: locked ? 2 : 1.2, lineCap: .round))
                 .frame(width: rect.width, height: rect.height)
-                .shadow(color: locked ? Theme.gold.opacity(0.7) : .clear, radius: 8)
+                .shadow(color: locked ? Theme.rose.opacity(0.7) : .clear, radius: 8)
                 .offset(x: rect.minX, y: rect.minY)
 
             if let sighting {
                 HStack(spacing: 6) {
-                    Circle().fill(Theme.goldLight).frame(width: 5, height: 5)
+                    Circle().fill(Theme.roseLight).frame(width: 5, height: 5)
                     Text("FELIS CATUS · \(Int(sighting.confidence * 100))%")
                         .font(.system(size: 9.5, weight: .semibold, design: .monospaced))
                         .tracking(1.5)
@@ -198,7 +199,7 @@ struct Reticle: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Capsule().fill(Theme.goldGradient))
+                .background(Capsule().fill(Theme.roseGold))
                 .offset(x: rect.minX, y: max(4, rect.minY - 26))
                 .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .bottomLeading)))
             }
@@ -257,11 +258,11 @@ struct DarkLens: View {
             let t = context.date.timeIntervalSinceReferenceDate
             ZStack {
                 Theme.ink
-                Guilloche(color: Theme.champagne.opacity(0.06), lineWidth: 0.4, petals: 10, bands: 3, strands: 14)
+                Guilloche(color: Theme.roseLight.opacity(0.06), lineWidth: 0.4, petals: 10, bands: 3, strands: 14)
                     .rotationEffect(.radians(t * 0.03))
                     .centered(size: 600)
                 Aperture()
-                    .stroke(Theme.champagne.opacity(0.18), lineWidth: 1)
+                    .stroke(Theme.roseLight.opacity(0.18), lineWidth: 1)
                     .frame(width: 180, height: 180)
                     .rotationEffect(.radians(t * 0.12))
             }

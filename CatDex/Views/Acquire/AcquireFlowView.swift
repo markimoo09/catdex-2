@@ -6,6 +6,7 @@ struct AcquireFlowView: View {
     @Environment(Router.self) private var router
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(Game.self) private var game
     @Query(sort: \Acquisition.lotNumber, order: .reverse) private var lots: [Acquisition]
 
     @State private var session: AppraisalSession?
@@ -17,7 +18,7 @@ struct AcquireFlowView: View {
 
     var body: some View {
         ZStack {
-            Theme.ink.ignoresSafeArea()
+            Theme.pearl.ignoresSafeArea()
             switch phase {
             case .lens:
                 LensView(lotNumber: nextLot, onPhoto: { begin(with: $0) }, onClose: { dismiss() })
@@ -63,6 +64,7 @@ struct AcquireFlowView: View {
         guard let session, let acquisition = session.makeAcquisition() else { return }
         context.insert(acquisition)
         try? context.save()
+        game.recordAcquisition(acquisition)
         let id = acquisition.id
         dismiss()
         Task {

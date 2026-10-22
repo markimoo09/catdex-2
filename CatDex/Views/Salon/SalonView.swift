@@ -1,220 +1,269 @@
 import SwiftData
 import SwiftUI
 
+/// Home: today's pick, daily commissions, the next show, recent finds.
 struct SalonView: View {
     let zoom: Namespace.ID
     @Environment(Router.self) private var router
+    @Environment(Game.self) private var game
     @Query(sort: \Acquisition.lotNumber, order: .reverse) private var lots: [Acquisition]
 
-    private var patronage: Patronage { Patronage(lots: lots.map(LotSummary.init)) }
-
     var body: some View {
-        ScrollViewReader { reader in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 34) {
-                    header
-                    if let featured = PieceDuJour.pick(from: lots) {
-                        pieceDuJour(featured)
-                    } else {
-                        EmptySalon { router.isAcquiring = true }
-                    }
-                    section("Patronage") {
-                        PatronCard(patronage: patronage)
-                    }
-                    section("Exhibitions", trailing: "\(patronage.completedExhibitions) of \(patronage.exhibitions.count)") {
-                        ExhibitionsRow(exhibitions: patronage.exhibitions)
-                    }
-                    .id("exhibitions")
-                    if lots.count > 1 {
-                        section("Recent Acquisitions") { recent }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                greeting
+                if let featured = PieceDuJour.pick(from: lots) {
+                    PieceDuJourCard(lot: featured, zoom: zoom) { router.paths[.salon, default: []].append(featured.id) }
+                } else {
+                    WelcomeCard { router.isAcquiring = true }
+                }
+                CommissionBoard()
+                ShowBanner(lotCount: lots.count) { router.tab = .concours }
+                if !lots.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        SectionHeader(title: "Recent finds", trailing: "\(lots.count) in collection")
+                        recent
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 120)
             }
-            .scrollIndicators(.hidden)
-            .background(backdrop)
-            .toolbar(.hidden, for: .navigationBar)
-            .task {
-                if DebugHooks.scrollDown {
-                    try? await Task.sleep(for: .milliseconds(600))
-                    reader.scrollTo("exhibitions", anchor: .top)
-                }
-            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+            .padding(.bottom, 110)
+        }
+        .scrollIndicators(.hidden)
+        .toolbar(.hidden, for: .navigationBar)
+    }
+
+    private var greeting: some View {
+        HStack(alignment: .lastTextBaseline) {
+            Text(greetingText)
+                .font(Theme.display(26))
+                .tracking(Theme.displayTracking)
+                .foregroundStyle(Theme.ink)
+            Spacer()
+            Text(Date.now.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated)))
+                .font(Theme.caption(12))
+                .foregroundStyle(Theme.ink3)
         }
     }
 
-    private var backdrop: some View {
-        ZStack {
-            Theme.ink
-            Spotlight(color: Theme.champagne, intensity: 0.08)
-        }
-        .ignoresSafeArea()
-    }
-
-    // MARK: Header
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("CATDEX")
-                    .font(Theme.display(20))
-                    .tracking(7)
-                    .foregroundStyle(Theme.goldSheen)
-                Spacer()
-                SmallCaps(Date.now.formatted(Format.editorialDate), size: 9.5, color: Theme.mute, tracking: 2)
-            }
-            Rectangle().fill(Theme.hairline).frame(height: 0.5)
-            Text(greeting)
-                .font(Theme.displayItalic(36))
-                .foregroundStyle(Theme.ivory)
-                .padding(.top, 6)
+    private var greetingText: String {
+        switch Calendar.current.component(.hour, from: .now) {
+        case 5..<12: "Good morning"
+        case 12..<18: "Good afternoon"
+        default: "Good evening"
         }
     }
-
-    private var greeting: String {
-        let hour = Calendar.current.component(.hour, from: .now)
-        switch hour {
-        case 5..<12: return "Good morning."
-        case 12..<18: return "Good afternoon."
-        default: return "Good evening."
-        }
-    }
-
-    // MARK: Pièce du jour
-
-    private func pieceDuJour(_ lot: Acquisition) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                SmallCaps("Pièce du Jour", size: 10, color: Theme.champagne)
-                Spacer()
-                SmallCaps(Format.estimate(lot.valuation), size: 9, color: Theme.mute, tracking: 1.6)
-            }
-            Button {
-                router.salonPath.append(lot.id)
-            } label: {
-                LotCard(lot: lot.presentation)
-                    .matchedTransitionSource(id: lot.id, in: zoom)
-            }
-            .buttonStyle(PressScale())
-            Text("“\(lot.motto)”")
-                .font(Theme.serifItalic(15))
-                .foregroundStyle(Theme.parchment)
-                + Text("  — \(lot.mottoTranslation)")
-                .font(Theme.serif(13))
-                .foregroundStyle(Theme.mute)
-        }
-    }
-
-    // MARK: Recent
 
     private var recent: some View {
         ScrollView(.horizontal) {
-            HStack(spacing: 14) {
-                ForEach(lots.prefix(8)) { lot in
-                    Button {
-                        router.salonPath.append(lot.id)
-                    } label: {
+            HStack(spacing: 10) {
+                ForEach(lots.prefix(10)) { lot in
+                    Button { router.paths[.salon, default: []].append(lot.id) } label: {
                         LotCard(lot: lot.presentation, compact: true, showsFoil: false)
-                            .frame(width: 132)
+                            .frame(width: 98)
                             .matchedTransitionSource(id: lot.id, in: zoom)
                     }
                     .buttonStyle(PressScale())
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
         .scrollIndicators(.hidden)
-        .padding(.horizontal, -20)
-    }
-
-    // MARK: Section chrome
-
-    private func section<Content: View>(_ title: String, trailing: String? = nil, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                SmallCaps(title, size: 10, color: Theme.champagne)
-                Rectangle().fill(Theme.hairline).frame(height: 0.5)
-                if let trailing {
-                    SmallCaps(trailing, size: 9, color: Theme.mute, tracking: 1.6)
-                }
-            }
-            content()
-        }
+        .padding(.horizontal, -16)
     }
 }
 
-// MARK: - Empty state
+// MARK: - Pièce du jour
 
-struct EmptySalon: View {
+struct PieceDuJourCard: View {
+    let lot: Acquisition
+    let zoom: Namespace.ID
+    var open: () -> Void
+
+    var body: some View {
+        let p = lot.presentation
+        Button(action: open) {
+            HStack(spacing: 0) {
+                ZStack {
+                    PaletteBackdrop(palette: lot.palette, marque: lot.marque)
+                    Spotlight(color: .white, intensity: 0.6)
+                    CutoutArt(image: p.cutout, isCameo: lot.isCameo, marque: lot.marque)
+                        .padding(12)
+                        .tiltParallax(4)
+                }
+                .frame(width: 138)
+                .clipped()
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Text("Pièce du jour")
+                            .font(Theme.caption(11, weight: .semibold))
+                            .foregroundStyle(Theme.roseDeep)
+                        Spacer()
+                        Hallmark(marque: lot.marque, size: 15)
+                    }
+                    Text(lot.name)
+                        .font(Theme.display(19))
+                        .tracking(-0.3)
+                        .foregroundStyle(Theme.ink)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                    Text(lot.epithet)
+                        .font(Theme.body(12.5))
+                        .foregroundStyle(Theme.ink2)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                    HStack(spacing: 6) {
+                        MarquePill(marque: lot.marque)
+                        let top = lot.temperament.dominant
+                        Pill(text: "\(top.displayName) \(lot.temperament[top])", fill: top.color.opacity(0.16), ink: top.color, symbol: top.symbol)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(height: 168)
+            .background(Theme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Theme.hairline, lineWidth: 0.5))
+            .shadow(color: Color(hex: 0x8A5A50, alpha: 0.12), radius: 14, y: 6)
+            .matchedTransitionSource(id: lot.id, in: zoom)
+        }
+        .buttonStyle(PressScale())
+        .accessibilityLabel("Pièce du jour: \(lot.name), \(lot.marque.displayName)")
+    }
+}
+
+struct WelcomeCard: View {
     var acquire: () -> Void
 
     var body: some View {
-        VStack(spacing: 22) {
+        HStack(spacing: 14) {
             ZStack {
-                Spotlight(color: Theme.champagne, intensity: 0.2)
-                    .frame(height: 260)
-                VStack(spacing: 0) {
-                    Spacer()
-                    Plinth(width: 150)
-                }
-                .frame(height: 240)
+                Circle().fill(Theme.roseGold).frame(width: 56, height: 56)
+                Image(systemName: "camera.aperture")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(.white)
             }
-            Text("The gallery awaits\nits first acquisition.")
-                .font(Theme.displayItalic(26))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(Theme.ivory)
-            Button("Acquire", action: acquire)
-                .buttonStyle(GoldButtonStyle())
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Begin your collection")
+                    .font(Theme.title(17))
+                    .foregroundStyle(Theme.ink)
+                Text("Your first lot awaits.")
+                    .font(Theme.body(13))
+                    .foregroundStyle(Theme.ink2)
+            }
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
+        .pearlCard(20)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: acquire)
+        .accessibilityAddTraits(.isButton)
     }
 }
 
-/// A marble plinth with a brass plaque.
-struct Plinth: View {
-    var width: CGFloat
-    var plaque: String?
+// MARK: - Commissions
+
+struct CommissionBoard: View {
+    @Environment(Game.self) private var game
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Capital
-            RoundedRectangle(cornerRadius: 2)
-                .fill(LinearGradient(colors: [Color(hex: 0x3A3836), Color(hex: 0x1E1D1C)], startPoint: .top, endPoint: .bottom))
-                .frame(width: width * 1.08, height: width * 0.07)
-            // Shaft
-            ZStack {
-                Rectangle()
-                    .fill(LinearGradient(colors: [Color(hex: 0x141414), Color(hex: 0x2C2B29), Color(hex: 0x353331), Color(hex: 0x1A1A19)],
-                                         startPoint: .leading, endPoint: .trailing))
-                Rectangle()
-                    .fill(.white)
-                    .colorEffect(ShaderLibrary.grain(.float(0.08)))
-                    .blendMode(.overlay)
-                    .opacity(0.35)
-                if let plaque {
-                    Text(plaque)
-                        .font(Theme.label(7.5, weight: .bold))
-                        .tracking(1.6)
-                        .foregroundStyle(Color(hex: 0x2A1E0E))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(RoundedRectangle(cornerRadius: 1.5).fill(Theme.goldGradient))
-                        .padding(.horizontal, 12)
+        let board = game.commissions
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Today's commissions", trailing: "\(board.filter(\.claimed).count) of \(board.count) done")
+            VStack(spacing: 0) {
+                ForEach(Array(board.enumerated()), id: \.element.id) { index, status in
+                    CommissionRow(status: status) { game.claim(status) }
+                    if index < board.count - 1 {
+                        Rectangle().fill(Theme.hairline).frame(height: 0.5).padding(.leading, 52)
+                    }
                 }
             }
-            .frame(width: width, height: width * 0.62)
-            // Base
-            RoundedRectangle(cornerRadius: 2)
-                .fill(LinearGradient(colors: [Color(hex: 0x2E2D2B), Color(hex: 0x111111)], startPoint: .top, endPoint: .bottom))
-                .frame(width: width * 1.14, height: width * 0.08)
+            .pearlCard(18, padding: 4)
         }
-        .shadow(color: .black.opacity(0.6), radius: 14, y: 10)
-        .accessibilityHidden(true)
+    }
+}
+
+struct CommissionRow: View {
+    let status: CommissionStatus
+    var claim: () -> Void
+
+    var body: some View {
+        let c = status.commission
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(status.claimed ? Theme.win.opacity(0.15) : Theme.blush)
+                Image(systemName: status.claimed ? "checkmark" : c.symbol)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(status.claimed ? Theme.win : Theme.roseDeep)
+            }
+            .frame(width: 36, height: 36)
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text(c.title)
+                        .font(Theme.title(14))
+                        .foregroundStyle(status.claimed ? Theme.ink3 : Theme.ink)
+                        .strikethrough(status.claimed, color: Theme.ink3)
+                    Spacer()
+                    Text("\(status.progress)/\(c.goal)")
+                        .font(Theme.number(11, weight: .semibold))
+                        .foregroundStyle(Theme.ink3)
+                }
+                HStack(spacing: 8) {
+                    ProgressBar(value: Double(status.progress) / Double(c.goal), height: 4)
+                    HStack(spacing: 6) {
+                        CoinAmount(value: c.guineas, size: 10)
+                        Text("\(c.xp) XP")
+                            .font(Theme.number(10, weight: .bold))
+                            .foregroundStyle(Theme.roseDeep)
+                    }
+                    .fixedSize()
+                }
+            }
+
+            if status.isClaimable {
+                Button("Claim", action: claim)
+                    .buttonStyle(PrimaryButtonStyle(compact: true))
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .animation(.spring(duration: 0.4), value: status)
+    }
+}
+
+// MARK: - Show banner
+
+struct ShowBanner: View {
+    let lotCount: Int
+    var open: () -> Void
+    @Environment(Game.self) private var game
+
+    var body: some View {
+        let tier = ShowTier.all.last { game.isUnlocked($0) } ?? .fete
+        Button(action: open) {
+            HStack(spacing: 14) {
+                Rosette(tier: tier, size: 52, label: "")
+                    .frame(width: 56, height: 64)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(tier.name)
+                        .font(Theme.title(16))
+                        .foregroundStyle(Theme.ink)
+                    Text(lotCount >= 3 ? "\(tier.venue) · prize \(tier.prize.formatted()) gns" : "Needs three cats")
+                        .font(Theme.body(12.5))
+                        .foregroundStyle(Theme.ink2)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(Theme.ink3)
+            }
+            .pearlCard(18, padding: 12)
+        }
+        .buttonStyle(PressScale())
     }
 }

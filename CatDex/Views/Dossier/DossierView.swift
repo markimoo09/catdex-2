@@ -5,11 +5,15 @@ struct DossierView: View {
     @Bindable var lot: Acquisition
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(Game.self) private var game
+    @Environment(Motion.self) private var motion
+    @Environment(Router.self) private var router
     @State private var showCertificate = DebugHooks.open == "certificate"
     @State private var showAudience = DebugHooks.open == "audience"
     @State private var renaming = false
     @State private var draftName = ""
     @State private var confirmRelease = false
+    @State private var pastHero = false
 
     var body: some View {
         let presentation = lot.presentation
@@ -18,43 +22,41 @@ struct DossierView: View {
                 VStack(spacing: 0) {
                     hero(presentation)
                     content
-                        .padding(.horizontal, 24)
-                        .padding(.top, 30)
-                        .padding(.bottom, 60)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 18)
+                        .padding(.bottom, 40)
                         .background(
-                            UnevenRoundedRectangle(topLeadingRadius: 30, topTrailingRadius: 30)
-                                .fill(Theme.onyx)
-                                .shadow(color: .black.opacity(0.5), radius: 20, y: -6)
+                            UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28)
+                                .fill(Theme.pearl)
+                                .shadow(color: Color(hex: 0x8A5A50, alpha: 0.12), radius: 16, y: -4)
                         )
-                        .padding(.top, -34)
+                        .padding(.top, -28)
                 }
             }
             .scrollIndicators(.hidden)
             .ignoresSafeArea(edges: .top)
+            .onScrollGeometryChange(for: Bool.self) { $0.contentOffset.y > 300 } action: { _, past in
+                withAnimation(.easeOut(duration: 0.2)) { pastHero = past }
+            }
             .task {
-                if DebugHooks.scrollDown {
+                if DebugHooks.scrollDown || DebugHooks.open == "groom" {
                     try? await Task.sleep(for: .milliseconds(700))
                     withAnimation { reader.scrollTo("temperament", anchor: .top) }
                 }
             }
         }
-        .background(Theme.onyx.ignoresSafeArea())
+        .background(Theme.pearl.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .overlay(alignment: .top) {
-            // A soft scrim so the chrome stays legible over scrolled text.
-            LinearGradient(colors: [Theme.onyx.opacity(0.92), Theme.onyx.opacity(0)], startPoint: .top, endPoint: .bottom)
-                .frame(height: 130)
-                .ignoresSafeArea(edges: .top)
-                .allowsHitTesting(false)
-        }
         .overlay(alignment: .top) { topBar }
         .sheet(isPresented: $showCertificate) {
             CertificateView(lot: lot)
-                .presentationBackground(Theme.ink)
-                .presentationCornerRadius(34)
+                .presentationBackground(Theme.pearl)
+                .presentationCornerRadius(30)
         }
         .fullScreenCover(isPresented: $showAudience) {
             AudienceView(lot: lot)
+                .environment(game)
+                .environment(motion)
         }
         .alert("Rename", isPresented: $renaming) {
             TextField("Name", text: $draftName)
@@ -82,269 +84,287 @@ struct DossierView: View {
 
     private func hero(_ p: LotPresentation) -> some View {
         ZStack {
-            PaletteBackdrop(palette: lot.palette)
-            Spotlight(intensity: 0.2)
+            PaletteBackdrop(palette: lot.palette, marque: lot.marque)
+            Spotlight(color: lot.marque == .noir ? Theme.rose : .white, intensity: lot.marque == .noir ? 0.3 : 0.7)
             CutoutArt(image: p.cutout, isCameo: lot.isCameo, marque: lot.marque)
                 .overlay {
                     if lot.marque.foilStrength > 0 && !lot.isCameo {
-                        FoilSheen(strength: lot.marque.foilStrength * 0.55, hueShift: Double(lot.lotNumber % 7) / 7, marque: lot.marque)
+                        FoilSheen(strength: lot.marque.foilStrength * 0.6, hueShift: Double(lot.lotNumber % 7) / 7, marque: lot.marque)
                             .mask(CutoutArt(image: p.cutout, isCameo: false, shadow: false))
                     }
                 }
-                .padding(.horizontal, 40)
-                .padding(.top, 110)
-                .padding(.bottom, 70)
-                .tiltParallax(10)
+                .padding(.horizontal, 48)
+                .padding(.top, 96)
+                .padding(.bottom, 52)
+                .tiltParallax(8)
         }
-        .frame(height: 540)
+        .frame(height: 420)
         .clipped()
     }
 
     private var topBar: some View {
-        HStack {
+        HStack(spacing: 8) {
             GlassIconButton(systemName: "chevron.left", label: "Back") { dismiss() }
             Spacer()
-            GlassIconButton(systemName: "seal", label: "Certificate of provenance") { showCertificate = true }
+            CoinAmount(value: game.ledger.guineas, size: 12)
+                .padding(.horizontal, 10)
+                .frame(height: 30)
+                .background(Capsule().fill(Color.white.opacity(0.7)))
+                .maisonGlass(in: Capsule())
             Menu {
-                Button { draftName = lot.name; renaming = true } label: {
-                    Label("Rename", systemImage: "pencil.line")
-                }
-                Button(role: .destructive) { confirmRelease = true } label: {
-                    Label("Deaccession", systemImage: "archivebox")
-                }
+                Button { draftName = lot.name; renaming = true } label: { Label("Rename", systemImage: "pencil.line") }
+                Button(role: .destructive) { confirmRelease = true } label: { Label("Deaccession", systemImage: "archivebox") }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.ivory)
-                    .frame(width: 44, height: 44)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(Theme.ink)
+                    .frame(width: 38, height: 38)
+                    .background(Circle().fill(Color.white.opacity(0.7)))
                     .maisonGlass(in: Circle())
-                .contentShape(Circle())
+                    .contentShape(Circle())
             }
             .accessibilityLabel("More")
         }
-        .padding(.horizontal, 18)
+        .padding(.horizontal, 16)
         .padding(.top, 4)
+        .padding(.bottom, 8)
+        .background {
+            if pastHero {
+                Theme.pearl
+                    .ignoresSafeArea(edges: .top)
+                    .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline).frame(height: 0.5) }
+                    .transition(.opacity)
+            }
+        }
     }
 
     // MARK: Content
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: 30) {
+        VStack(alignment: .leading, spacing: 14) {
             titleBlock
-            OrnamentRule()
-            curatorNote
-            section("Temperament") { TemperamentReadout(temperament: lot.temperament) }
-                .id("temperament")
-            section("The Coat") { PaletteSwatches(palette: lot.palette) }
-            section("Provenance") { provenanceTable }
             actions
+            temperament
+                .id("temperament")
+            curatorNote
+            coat
+            provenance
             footnote
         }
     }
 
     private var titleBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                SmallCaps(Format.lot(lot.lotNumber), size: 10, color: Theme.parchment)
-                Hallmark(marque: lot.marque, size: 14)
-                SmallCaps(lot.marque.displayName, size: 10, color: lot.marque.accent)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(String(format: "№ %03d", lot.lotNumber))
+                    .font(Theme.number(12, weight: .semibold))
+                    .foregroundStyle(Theme.ink3)
+                MarquePill(marque: lot.marque)
+                if lot.showWins > 0 {
+                    Pill(text: "\(lot.showWins) wins", fill: Theme.blush, ink: Theme.roseDeep, symbol: "rosette")
+                }
                 Spacer()
+                CoinAmount(value: lot.valuation, size: 13)
             }
             Text(lot.name)
-                .font(Theme.display(42))
-                .foregroundStyle(Theme.ivory)
+                .font(Theme.display(28))
+                .tracking(Theme.displayTracking)
+                .foregroundStyle(Theme.ink)
                 .fixedSize(horizontal: false, vertical: true)
             Text(lot.epithet)
-                .font(Theme.serifItalic(20))
-                .foregroundStyle(Theme.parchment)
-            HStack(spacing: 8) {
-                Text("“\(lot.motto)”")
-                    .font(Theme.serifItalic(15))
-                    .foregroundStyle(Theme.champagne)
-                Text("— \(lot.mottoTranslation)")
-                    .font(Theme.serif(13))
-                    .foregroundStyle(Theme.mute)
-            }
-            .padding(.top, 4)
-        }
-    }
-
-    private var curatorNote: some View {
-        let note = lot.curatorNote
-        let first = note.first.map(String.init) ?? ""
-        let rest = String(note.dropFirst())
-        return VStack(alignment: .leading, spacing: 14) {
-            SmallCaps("Curator's Note", size: 10, color: Theme.champagne)
-            (Text(first).font(Theme.display(46)).foregroundStyle(Theme.goldSheen)
-                + Text(rest).font(Theme.serif(17)).foregroundStyle(Theme.ivory.opacity(0.92)))
-                .lineSpacing(5)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack {
-                Spacer()
-                Text("The Curator")
-                    .font(Theme.script(24))
-                    .foregroundStyle(Theme.champagne)
-            }
-        }
-    }
-
-    private var provenanceTable: some View {
-        VStack(spacing: 0) {
-            row("Acquired", lot.acquiredAt.formatted(Format.longDate))
-            row("Hour", lot.hourLabel)
-            row("Setting", lot.setting)
-            row("Authentication", authentication)
-            row("Signature trait", lot.signatureTrait)
-            row("Estimate", Format.estimate(lot.valuation))
-            Text(lot.provenance)
-                .font(Theme.serifItalic(14))
-                .foregroundStyle(Theme.parchment)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 14)
-        }
-    }
-
-    private var authentication: String {
-        if let confidence = lot.catConfidence {
-            return "Felis catus · \(Int(confidence * 100))%"
-        }
-        return "By the curator's eye"
-    }
-
-    private func row(_ label: String, _ value: String) -> some View {
-        VStack(spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
-                SmallCaps(label, size: 9, color: Theme.mute, tracking: 1.8)
-                Spacer(minLength: 16)
-                Text(value)
-                    .font(Theme.serif(15))
-                    .foregroundStyle(Theme.ivory)
-                    .multilineTextAlignment(.trailing)
-            }
-            .padding(.vertical, 11)
-            Rectangle().fill(Theme.hairline).frame(height: 0.5)
+                .font(Theme.body(15, weight: .medium))
+                .foregroundStyle(Theme.ink2)
+            Text("“\(lot.motto)” · \(lot.mottoTranslation)")
+                .font(Theme.body(12.5).italic())
+                .foregroundStyle(Theme.ink3)
         }
     }
 
     private var actions: some View {
-        VStack(spacing: 12) {
-            Button {
-                showAudience = true
-            } label: {
-                Label("Request an Audience", systemImage: "envelope.open")
-                    .frame(maxWidth: .infinity)
+        HStack(spacing: 8) {
+            action("Audience", "bubble.left.and.text.bubble.right.fill") { showAudience = true }
+            action("Certificate", "seal.fill") { showCertificate = true }
+            action("Shows", "trophy.fill") {
+                router.paths[router.tab] = []
+                router.tab = .concours
             }
-            .buttonStyle(GoldButtonStyle())
-            Button {
-                showCertificate = true
-            } label: {
-                Text("Certificate of Provenance").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(HairlineButtonStyle())
         }
-        .padding(.top, 6)
+    }
+
+    private func action(_ title: String, _ symbol: String, perform: @escaping () -> Void) -> some View {
+        Button(action: perform) {
+            VStack(spacing: 5) {
+                Image(systemName: symbol)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.roseDeep)
+                Text(title)
+                    .font(Theme.caption(12, weight: .semibold))
+                    .foregroundStyle(Theme.ink)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(RoundedRectangle(cornerRadius: 14, style: .continuous).fill(Theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(Theme.hairline, lineWidth: 0.5))
+        }
+        .buttonStyle(PressScale())
+        .accessibilityLabel(title == "Audience" ? "Request an Audience" : title)
+    }
+
+    private var temperament: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Temperament")
+            VStack(spacing: 10) {
+                ForEach(Temperament.Trait.allCases, id: \.self) { trait in
+                    GroomRow(lot: lot, trait: trait)
+                }
+            }
+            .pearlCard(18, padding: 12)
+        }
+    }
+
+    private var curatorNote: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Curator's note")
+            VStack(alignment: .leading, spacing: 8) {
+                Text(lot.curatorNote)
+                    .font(Theme.body(15))
+                    .foregroundStyle(Theme.ink)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 5) {
+                    Image(systemName: lot.aiAuthored ? "sparkles" : "pencil.and.scribble")
+                        .font(.system(size: 10))
+                    Text(lot.aiAuthored ? "Written on-device by Apple Intelligence" : "Written by the house curator")
+                        .font(Theme.caption(11))
+                }
+                .foregroundStyle(Theme.ink3)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .pearlCard(18, padding: 14)
+        }
+    }
+
+    private var coat: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "The coat")
+            HStack(alignment: .top, spacing: 8) {
+                ForEach(lot.palette) { swatch in
+                    VStack(spacing: 6) {
+                        Circle()
+                            .fill(swatch.color)
+                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                            .frame(width: 38, height: 38)
+                            .shadow(color: Color(hex: 0x5A3A30, alpha: 0.18), radius: 4, y: 2)
+                        Text(swatch.name)
+                            .font(Theme.caption(11.5, weight: .semibold))
+                            .foregroundStyle(Theme.ink)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                        Text("\(Int(swatch.share * 100))%")
+                            .font(Theme.number(10, weight: .medium))
+                            .foregroundStyle(Theme.ink3)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(swatch.name), \(Int(swatch.share * 100)) percent of the coat")
+                }
+            }
+            .pearlCard(18, padding: 12)
+        }
+    }
+
+    private var provenance: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Provenance")
+            VStack(spacing: 0) {
+                row("Acquired", lot.acquiredAt.formatted(Format.longDate))
+                row("Hour", lot.hourLabel)
+                row("Setting", lot.setting)
+                row("Authentication", lot.catConfidence.map { "Felis catus · \(Int($0 * 100))%" } ?? "By the curator's eye")
+                row("Estimate", Format.estimate(lot.valuation))
+                row("Show record", "\(lot.showWins) of \(lot.showRounds) rounds won", last: true)
+            }
+            .pearlCard(18, padding: 12)
+        }
+    }
+
+    private func row(_ label: String, _ value: String, last: Bool = false) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(label).font(Theme.body(13)).foregroundStyle(Theme.ink3)
+                Spacer(minLength: 12)
+                Text(value).font(Theme.body(13.5, weight: .medium)).foregroundStyle(Theme.ink).multilineTextAlignment(.trailing)
+            }
+            .padding(.vertical, 8)
+            if !last { Rectangle().fill(Theme.hairline).frame(height: 0.5) }
+        }
     }
 
     private var footnote: some View {
-        HStack(spacing: 6) {
-            Image(systemName: lot.aiAuthored ? "sparkles" : "pencil.and.scribble")
-                .font(.system(size: 11))
-            Text(lot.aiAuthored ? "Composed on-device by Apple Intelligence" : "Composed by the house curator")
-                .font(Theme.serifItalic(12))
-        }
-        .foregroundStyle(Theme.mute)
-        .frame(maxWidth: .infinity)
-    }
-
-    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 10) {
-                SmallCaps(title, size: 10, color: Theme.champagne)
-                Rectangle().fill(Theme.hairline).frame(height: 0.5)
-            }
-            content()
-        }
+        Text(lot.provenance)
+            .font(Theme.caption(12))
+            .foregroundStyle(Theme.ink3)
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
+            .padding(.top, 4)
     }
 }
 
-// MARK: - Temperament
+// MARK: - Grooming
 
-struct TemperamentReadout: View {
-    let temperament: Temperament
-    @State private var shown = false
+/// A temperament reading with an inline grooming button.
+struct GroomRow: View {
+    let lot: Acquisition
+    let trait: Temperament.Trait
+    @Environment(Game.self) private var game
+    @State private var pulse = 0
 
     var body: some View {
-        VStack(spacing: 16) {
-            ForEach(Temperament.Trait.allCases, id: \.self) { trait in
-                let value = temperament[trait]
-                HStack(spacing: 14) {
-                    SmallCaps(trait.displayName, size: 9.5, color: Theme.parchment, tracking: 1.8)
-                        .frame(width: 92, alignment: .leading)
-                    GeometryReader { proxy in
-                        ZStack(alignment: .leading) {
-                            Rectangle().fill(Theme.hairline).frame(height: 1)
-                            HStack(spacing: 0) {
-                                ForEach(0..<11) { i in
-                                    Rectangle().fill(Theme.hairline).frame(width: 0.5, height: i % 5 == 0 ? 7 : 4)
-                                    if i < 10 { Spacer(minLength: 0) }
-                                }
-                            }
-                            Rectangle()
-                                .fill(Theme.goldGradient)
-                                .frame(width: shown ? proxy.size.width * CGFloat(value) / 100 : 0, height: 2)
-                            Circle()
-                                .fill(Theme.goldLight)
-                                .frame(width: 6, height: 6)
-                                .shadow(color: Theme.gold, radius: 4)
-                                .offset(x: (shown ? proxy.size.width * CGFloat(value) / 100 : 0) - 3)
-                        }
-                        .frame(maxHeight: .infinity)
+        let value = lot.temperament[trait]
+        let cost = Grooming.cost(currentValue: value)
+        let maxed = value >= 100
+        let affordable = game.ledger.guineas >= cost
+        HStack(spacing: 10) {
+            Image(systemName: trait.symbol)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(trait.color)
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(trait.color.opacity(0.14)))
+            Text(trait.displayName)
+                .font(Theme.body(13, weight: .medium))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 72, alignment: .leading)
+            ProgressBar(value: Double(value) / 100, tint: AnyShapeStyle(trait.color), height: 6)
+            Text("\(value)")
+                .font(Theme.number(14, weight: .heavy))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 28, alignment: .trailing)
+                .contentTransition(.numericText(value: Double(value)))
+                .scaleEffect(pulse > 0 ? 1 : 1)
+            Button {
+                if game.groom(lot, trait) {
+                    pulse += 1
+                }
+            } label: {
+                HStack(spacing: 2) {
+                    Text(maxed ? "Max" : "+\(Grooming.gain)")
+                        .font(Theme.number(11, weight: .heavy))
+                    if !maxed {
+                        CoinGlyph(size: 9)
+                        Text(Format.compact(cost)).font(Theme.number(10, weight: .semibold))
                     }
-                    .frame(height: 10)
-                    Text("\(value)")
-                        .font(Theme.display(17))
-                        .foregroundStyle(trait == temperament.dominant ? Theme.champagne : Theme.ivory)
-                        .frame(width: 30, alignment: .trailing)
                 }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(trait.displayName) \(value) of 100")
+                .foregroundStyle(maxed || !affordable ? Theme.ink3 : Theme.roseDeep)
+                .padding(.horizontal, 7)
+                .frame(height: 26)
+                .background(Capsule().fill(maxed || !affordable ? Theme.surfaceSunk : Theme.blush))
             }
+            .buttonStyle(PressScale())
+            .disabled(maxed || !affordable)
+            .accessibilityLabel(maxed ? "\(trait.displayName) is at its peak" : "Groom \(trait.displayName) for \(cost) guineas")
         }
-        .onAppear {
-            withAnimation(.spring(duration: 1.1, bounce: 0.15).delay(0.15)) { shown = true }
-        }
-    }
-}
-
-// MARK: - Palette
-
-struct PaletteSwatches: View {
-    let palette: [Swatch]
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            ForEach(palette) { swatch in
-                VStack(alignment: .leading, spacing: 8) {
-                    RoundedRectangle(cornerRadius: 3, style: .continuous)
-                        .fill(swatch.color)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                .fill(.white).colorEffect(ShaderLibrary.grain(.float(0.07))).blendMode(.overlay)
-                        )
-                        .overlay(RoundedRectangle(cornerRadius: 3, style: .continuous).stroke(Color.white.opacity(0.14), lineWidth: 0.5))
-                        .frame(height: 64)
-                        .shadow(color: .black.opacity(0.4), radius: 6, y: 4)
-                    Text(swatch.name)
-                        .font(Theme.serifItalic(13))
-                        .foregroundStyle(Theme.ivory)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    SmallCaps(swatch.hex, size: 7.5, color: Theme.mute, tracking: 1)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(swatch.name), \(Int(swatch.share * 100)) percent of the coat")
-            }
-        }
+        .animation(.spring(duration: 0.4), value: value)
+        .sensoryFeedback(.increase, trigger: pulse)
+        .accessibilityElement(children: .contain)
     }
 }

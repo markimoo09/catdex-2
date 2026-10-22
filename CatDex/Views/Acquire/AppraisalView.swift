@@ -15,11 +15,11 @@ struct AppraisalView: View {
             stage
                 .frame(maxHeight: .infinity)
             details
-                .frame(height: 240, alignment: .top)
+                .frame(height: 230, alignment: .top)
             progress
-                .padding(.bottom, 18)
+                .padding(.bottom, 14)
         }
-        .padding(.horizontal, 22)
+        .padding(.horizontal, 16)
         .background(background)
         .overlay {
             if session.isDoubtful {
@@ -42,11 +42,10 @@ struct AppraisalView: View {
 
     private var background: some View {
         ZStack {
-            Theme.ink
-            Spotlight(color: Theme.champagne, intensity: 0.1)
+            Theme.ground
             if !session.palette.isEmpty {
                 PaletteBackdrop(palette: session.palette)
-                    .opacity(0.35)
+                    .opacity(0.6)
                     .mask(RadialGradient(colors: [.white, .clear], center: .center, startRadius: 40, endRadius: 420))
                     .transition(.opacity)
             }
@@ -56,13 +55,16 @@ struct AppraisalView: View {
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
-            SmallCaps("The Appraisal", size: 10, color: Theme.champagne, tracking: 3)
+            Text("Appraisal")
+                .font(Theme.display(22))
+                .tracking(Theme.displayTracking)
+                .foregroundStyle(Theme.ink)
             Spacer()
             Text(Format.lot(session.lotNumber))
-                .font(Theme.displayItalic(17))
-                .foregroundStyle(Theme.ivory)
+                .font(Theme.number(13, weight: .semibold))
+                .foregroundStyle(Theme.ink3)
         }
-        .padding(.top, 14)
+        .padding(.top, 10)
     }
 
     // MARK: Stage
@@ -88,74 +90,75 @@ struct AppraisalView: View {
                             Image(uiImage: mask)
                                 .resizable()
                                 .scaledToFit()
-                                .shadow(color: Theme.gold.opacity(rim ? 0.55 : 0), radius: rim ? 22 : 0)
-                                .shadow(color: .black.opacity(0.5), radius: 20, y: 18)
+                                .shadow(color: Theme.rose.opacity(rim ? 0.6 : 0), radius: rim ? 18 : 0)
+                                .shadow(color: Color(hex: 0x5A3A30, alpha: 0.25), radius: 14, y: 12)
                                 .scaleEffect(rim ? 1.03 : 1)
                                 .transition(.opacity)
                         }
                     }
                     .frame(maxWidth: size.width, maxHeight: size.height * 0.94)
-                    .clipShape(RoundedRectangle(cornerRadius: dissolve > 0.5 ? 0 : 6, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: dissolve > 0.5 ? 0 : 14, style: .continuous))
                 }
             }
             .frame(width: size.width, height: size.height)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
     }
 
     // MARK: Details
 
     private var details: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 10) {
             if session.stage >= .readingCoat, !session.palette.isEmpty {
-                HStack(spacing: 16) {
+                HStack(spacing: 8) {
                     ForEach(Array(session.palette.enumerated()), id: \.element.id) { index, swatch in
-                        VStack(spacing: 6) {
+                        VStack(spacing: 5) {
                             Circle()
                                 .fill(swatch.color)
-                                .overlay(Circle().stroke(Color.white.opacity(0.25), lineWidth: 0.5))
-                                .frame(width: 30, height: 30)
-                                .shadow(color: swatch.color.opacity(0.6), radius: 8)
+                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                .frame(width: 28, height: 28)
+                                .shadow(color: Color(hex: 0x5A3A30, alpha: 0.2), radius: 4, y: 2)
                             Text(swatch.name)
-                                .font(Theme.serifItalic(11))
-                                .foregroundStyle(Theme.parchment)
+                                .font(Theme.caption(11, weight: .semibold))
+                                .foregroundStyle(Theme.ink)
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.8)
+                                .minimumScaleFactor(0.75)
                         }
                         .frame(maxWidth: .infinity)
                         .transition(.asymmetric(insertion: .scale(scale: 0.3).combined(with: .opacity), removal: .opacity))
                         .animation(.spring(duration: 0.55, bounce: 0.35).delay(Double(index) * 0.12), value: session.palette)
                     }
                 }
+                .pearlCard(16, padding: 10)
             }
 
             if session.stage >= .provenance, let setting = session.setting {
-                HStack(spacing: 18) {
-                    fact("Setting", setting)
-                    Rectangle().fill(Theme.hairline).frame(width: 0.5, height: 26)
-                    fact("Hour", session.hour)
-                    Spacer()
+                HStack(spacing: 8) {
+                    fact("house", "Setting", setting)
+                    fact("clock", "Hour", session.hour)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
             if session.stage >= .composing {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 6) {
-                        SmallCaps("The curator writes", size: 8.5, color: Theme.champagne)
-                        if session.draft.isAppleIntelligence {
-                            Image(systemName: "sparkles").font(.system(size: 9)).foregroundStyle(Theme.champagne)
-                        }
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 5) {
+                        Image(systemName: session.draft.isAppleIntelligence ? "sparkles" : "pencil.and.scribble")
+                            .font(.system(size: 10, weight: .semibold))
+                        Text("The curator writes")
+                            .font(Theme.caption(11, weight: .semibold))
                     }
+                    .foregroundStyle(Theme.roseDeep)
                     (Text(session.draft.curatorNote ?? "")
-                        + Text(session.stage == .composing ? " ▍" : "").foregroundStyle(Theme.gold))
-                        .font(Theme.serifItalic(15.5))
-                        .foregroundStyle(Theme.ivory.opacity(0.92))
-                        .lineSpacing(3)
+                        + Text(session.stage == .composing ? " ▍" : "").foregroundStyle(Theme.rose))
+                        .font(Theme.body(14))
+                        .foregroundStyle(Theme.ink)
+                        .lineSpacing(2)
                         .lineLimit(4)
                         .fixedSize(horizontal: false, vertical: true)
-                        .contentTransition(.opacity)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .pearlCard(16, padding: 12)
                 .transition(.opacity)
             }
         }
@@ -163,13 +166,20 @@ struct AppraisalView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func fact(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            SmallCaps(label, size: 8, color: Theme.mute)
-            Text(value)
-                .font(Theme.display(19))
-                .foregroundStyle(Theme.ivory)
+    private func fact(_ symbol: String, _ label: String, _ value: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Theme.roseDeep)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(Theme.blush))
+            VStack(alignment: .leading, spacing: 0) {
+                Text(label).font(Theme.caption(10.5)).foregroundStyle(Theme.ink3)
+                Text(value).font(Theme.title(14)).foregroundStyle(Theme.ink).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            Spacer(minLength: 0)
         }
+        .pearlCard(14, padding: 8)
     }
 
     // MARK: Progress
@@ -177,33 +187,32 @@ struct AppraisalView: View {
     private var progress: some View {
         let stages = AppraisalSession.Stage.allCases.filter { $0 != .sealed }
         let current = min(session.stage.rawValue, stages.count - 1)
-        return VStack(spacing: 12) {
-            HStack(spacing: 8) {
+        return VStack(spacing: 8) {
+            HStack(spacing: 6) {
                 ForEach(stages, id: \.self) { s in
                     Capsule()
-                        .fill(s.rawValue < session.stage.rawValue ? AnyShapeStyle(Theme.goldGradient) :
-                                s == session.stage ? AnyShapeStyle(Theme.champagne.opacity(0.55)) : AnyShapeStyle(Theme.hairline))
-                        .frame(height: 2)
+                        .fill(s.rawValue < session.stage.rawValue ? AnyShapeStyle(Theme.roseGold) :
+                                s == session.stage ? AnyShapeStyle(Theme.rose.opacity(0.45)) : AnyShapeStyle(Theme.surfaceSunk))
+                        .frame(height: 4)
                 }
             }
             HStack {
-                Text(romanNumerals[current])
-                    .font(Theme.display(14))
-                    .foregroundStyle(Theme.champagne)
                 Text(session.stage == .sealed ? "Sealed" : session.stage.title)
-                    .font(Theme.serifItalic(14))
-                    .foregroundStyle(Theme.parchment)
+                    .font(Theme.title(14))
+                    .foregroundStyle(Theme.ink)
                     .id(session.stage)
                     .transition(.push(from: .bottom))
                 Spacer()
+                Text("\(current + 1)/\(stages.count)")
+                    .font(Theme.number(12, weight: .semibold))
+                    .foregroundStyle(Theme.ink3)
             }
+            .clipped()
         }
         .animation(.smooth, value: session.stage)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Stage \(current + 1) of \(stages.count): \(session.stage.title)")
     }
-
-    private let romanNumerals = ["I", "II", "III", "IV", "V"]
 }
 
 /// Animatable wrapper so the dissolve shader's progress interpolates.
@@ -251,29 +260,32 @@ struct DoubtView: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.65).ignoresSafeArea()
-            VStack(spacing: 18) {
+            Color.black.opacity(0.25).ignoresSafeArea()
+            VStack(spacing: 12) {
                 Image(systemName: "eyeglasses")
-                    .font(.system(size: 26, weight: .light))
-                    .foregroundStyle(Theme.champagne)
-                Text("The curator hesitates.")
-                    .font(Theme.displayItalic(28))
-                    .foregroundStyle(Theme.ivory)
-                Text("Our appraisers could not authenticate a feline subject in this photograph.")
-                    .font(Theme.serif(15))
-                    .foregroundStyle(Theme.parchment)
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(Theme.roseDeep)
+                    .frame(width: 52, height: 52)
+                    .background(Circle().fill(Theme.blush))
+                Text("The curator hesitates")
+                    .font(Theme.display(21))
+                    .tracking(Theme.displayTracking)
+                    .foregroundStyle(Theme.ink)
+                Text("No cat could be authenticated in this photograph.")
+                    .font(Theme.body(14))
+                    .foregroundStyle(Theme.ink2)
                     .multilineTextAlignment(.center)
-                VStack(spacing: 10) {
-                    Button("Proceed Regardless", action: onProceed)
-                        .buttonStyle(GoldButtonStyle())
+                HStack(spacing: 10) {
                     Button("Retake", action: onRetake)
-                        .buttonStyle(HairlineButtonStyle())
+                        .buttonStyle(SecondaryButtonStyle(compact: true))
+                    Button("Proceed anyway", action: onProceed)
+                        .buttonStyle(PrimaryButtonStyle(compact: true))
                 }
-                .padding(.top, 6)
+                .padding(.top, 4)
             }
+            .padding(22)
+            .pearlCard(26, padding: nil)
             .padding(28)
-            .maisonGlass(in: RoundedRectangle(cornerRadius: 30, style: .continuous))
-            .padding(24)
         }
     }
 }

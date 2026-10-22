@@ -6,14 +6,18 @@ struct CatDexApp: App {
     let container: ModelContainer
     @State private var router = Router()
     @State private var motion = Motion()
+    @State private var game: Game
 
     init() {
+        let container: ModelContainer
         do {
-            container = try ModelContainer(for: Acquisition.self)
+            container = try ModelContainer(for: Acquisition.self, Ledger.self)
         } catch {
             fatalError("Could not open the collection: \(error)")
         }
         DemoSeeder.prepare(container.mainContext)
+        self.container = container
+        _game = State(initialValue: Game(context: container.mainContext))
     }
 
     var body: some Scene {
@@ -21,8 +25,9 @@ struct CatDexApp: App {
             RootView()
                 .environment(router)
                 .environment(motion)
-                .preferredColorScheme(.dark)
-                .tint(Theme.champagne)
+                .environment(game)
+                .preferredColorScheme(.light)
+                .tint(Theme.roseDeep)
         }
         .modelContainer(container)
     }
@@ -32,31 +37,31 @@ struct CatDexApp: App {
 @MainActor
 @Observable
 final class Router {
-    enum Tab: Hashable { case salon, gallery }
+    enum Tab: Hashable { case salon, concours, gallery, patron }
 
     var tab: Tab = .salon
-    var salonPath: [UUID] = []
-    var galleryPath: [UUID] = []
+    var paths: [Tab: [UUID]] = [:]
     var isAcquiring = false
-    var galleryMode: GalleryMode = .salon
+    var galleryMode: GalleryMode = .grid
 
-    var isDeep: Bool {
-        switch tab {
-        case .salon: !salonPath.isEmpty
-        case .gallery: !galleryPath.isEmpty
-        }
+    var isDeep: Bool { !(paths[tab] ?? []).isEmpty }
+
+    func path(_ tab: Tab) -> Binding<[UUID]> {
+        Binding(get: { self.paths[tab] ?? [] }, set: { self.paths[tab] = $0 })
     }
 
     /// Opens a lot's dossier from anywhere (e.g. right after it's added).
     func showDossier(_ id: UUID) {
         tab = .gallery
-        galleryPath = [id]
+        paths[.gallery] = [id]
     }
 
     init() {
         switch DebugHooks.open {
         case "gallery": tab = .gallery
-        case "catalogue": tab = .gallery; galleryMode = .catalogue
+        case "hang": tab = .gallery; galleryMode = .hang
+        case "concours", "match": tab = .concours
+        case "patron": tab = .patron
         case "lens": isAcquiring = true
         default: break
         }
@@ -65,7 +70,7 @@ final class Router {
 }
 
 enum GalleryMode: String, CaseIterable, Identifiable {
-    case salon = "Salon Hang"
-    case catalogue = "Catalogue"
+    case grid = "Collection"
+    case hang = "Showcase"
     var id: String { rawValue }
 }

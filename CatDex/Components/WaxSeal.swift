@@ -197,9 +197,11 @@ struct GoldLeafBurst: View {
                     c.scaleBy(x: max(0.08, abs(flip)), y: 1)
                     c.opacity = alpha
                     let rect = CGRect(x: -f.size / 2, y: -f.size * 0.35, width: f.size, height: f.size * 0.7)
-                    let colors: [Color] = tint == .platinum
-                        ? [Color(hex: 0xFFFFFF), Color(hex: 0xC9D2E6), Color(hex: 0xE8DDF2)]
-                        : [Theme.goldLight, Theme.gold, Theme.goldDeep]
+                    let colors: [Color] = switch tint {
+                    case .platinum: [Color(hex: 0xFFFFFF), Color(hex: 0xC9C6EC), Color(hex: 0xF0DDEB)]
+                    case .noir: [Theme.roseLight, Theme.rose, Theme.roseDeep]
+                    default: [Color(hex: 0xF8E5B4), Color(hex: 0xE2B65C), Color(hex: 0xB7882C)]
+                    }
                     c.fill(Path(roundedRect: rect, cornerRadius: 1.5),
                            with: .color(colors[Int(f.shade * 2.99)]))
                 }

@@ -1,43 +1,44 @@
 # CatDex Maison — v2
 
-*A private collection of extraordinary cats.*
+*A private collection of extraordinary cats — and a game about building it.*
 
-Photograph a cat. It's lifted out of the photo, its coat is read, Apple Intelligence
-writes it a catalogue entry on device, and it arrives in a wax-sealed envelope as the
-next lot in your collection. v2 re-imagines v1's playful card game as a luxury house:
-auction catalogue, couture atelier and natural-history museum in one.
+Photograph a cat. It's lifted out of the photo, its coat is read, Apple Intelligence writes
+it a catalogue entry on device, and it arrives in a wax-sealed envelope as the next lot in
+your collection. Then put it to work: earn guineas and XP, clear daily commissions, groom
+its temperament, and send it into the ring against rival collectors' cats.
 
-See [docs/DESIGN.md](docs/DESIGN.md) for the full concept.
+See [docs/DESIGN.md](docs/DESIGN.md) for the full design and game rules.
 
-| Salon | Salon Hang | Catalogue | Dossier | Certificate |
+| Salon | Shows | Match | Verdict | Gallery |
 |---|---|---|---|---|
-| ![Salon](docs/screenshots/salon.png) | ![Salon Hang](docs/screenshots/gallery-hang.png) | ![Catalogue](docs/screenshots/catalogue.png) | ![Dossier](docs/screenshots/dossier.png) | ![Certificate](docs/screenshots/certificate.png) |
+| ![Salon](docs/screenshots/salon.png) | ![Shows](docs/screenshots/shows.png) | ![Match](docs/screenshots/match.png) | ![Verdict](docs/screenshots/verdict.png) | ![Gallery](docs/screenshots/gallery.png) |
 
-| The Lens | The Appraisal | The Unsealing | The Reveal | Audience |
+| Dossier | Patron | The Lens | Appraisal | Unsealing |
 |---|---|---|---|---|
-| ![Lens](docs/screenshots/lens.png) | ![Appraisal](docs/screenshots/appraisal.png) | ![Unsealing](docs/screenshots/unsealing.png) | ![Reveal](docs/screenshots/reveal.png) | ![Audience](docs/screenshots/audience.png) |
+| ![Dossier](docs/screenshots/dossier.png) | ![Patron](docs/screenshots/patron.png) | ![Lens](docs/screenshots/lens.png) | ![Appraisal](docs/screenshots/appraisal.png) | ![Unsealing](docs/screenshots/unsealing.png) |
+
+| Reveal | Certificate | Audience |
+|---|---|---|
+| ![Reveal](docs/screenshots/reveal.png) | ![Certificate](docs/screenshots/certificate.png) | ![Audience](docs/screenshots/audience.png) |
 
 ## Highlights
 
-- **The Lens** — custom AVFoundation camera; on device, Vision watches the live feed and a
-  gold reticle locks onto any cat it recognises (`FELIS CATUS · 94%`).
-- **The Appraisal** — a five-stage ceremony: subject lift with a gold-edged *gilded dissolve*
-  (Metal), k-means coat palette named from a couture colour library, on-device scene
-  reading for provenance, and the curator's note **streamed live** from Foundation Models.
-- **The Unsealing** — tap the wax seal three times to crack it; the flap lifts, the card
-  rises, gold leaf falls for Gold and above, and the estimate counts up in guineas.
-- **Five marques** — Ivory, Silver, Gold, Platinum, Noir — each with its own metal, wax and
-  foil. Nine sub-Gold lots in a row guarantee the tenth is Gold or better.
-- **Salon** — *Pièce du Jour*, the brushed-metal **Patron card** (tilts with the phone),
-  Patronage tiers and ten **Exhibitions** (achievements).
-- **Gallery** — *Salon Hang* (each cat on a plinth under a spotlight, 3D carousel, floor
-  reflection) and *Catalogue* (grid, search by name/marque/colour, sort).
-- **Dossier** — breathing mesh backdrop built from the cat's coat, tilt-tracking foil,
-  raised gilt initial, temperament, palette, provenance.
-- **Certificate of Provenance** — procedurally engraved guilloche border, cameo, wax seal,
-  curator's signature; share it as an image.
-- **Audience** — write to your cat; it answers in character (on-device LLM, streamed),
-  with a keyword-aware house voice where Apple Intelligence isn't available.
+- **Pearl look** — pearl and blush grounds, rose-gold accents, SF Pro throughout, compact
+  layouts; each cat's coat palette becomes its card's pastel backdrop.
+- **The Lens** — custom camera; on device, a reticle locks onto any cat Vision recognises.
+- **The Appraisal** — subject lift with a gold-edged dissolve (Metal), a coat palette named
+  from a couture colour library, scene provenance, and the curator's note streamed live
+  from Foundation Models.
+- **The Unsealing** — tap the wax seal three times; the card rises with its estimate and
+  the finder's fee and XP you're about to earn.
+- **Five marques** — Ivory → Noir, each with its own metal, wax, foil, XP, fee and show flair.
+- **Concours** — best-of-three cat shows against rival collectors across four tiers. The
+  judge names a trait each round; you pick which cat to send. Win rosettes and prizes.
+- **Progression** — patron levels and titles, a guinea purse, three daily commissions,
+  a streak, grooming to raise traits, show experience, and ten exhibitions.
+- **Patron** — rose-gold membership card, record, rosette cabinet, marques held.
+- **Certificate & Audience** — a shareable certificate of provenance; chat with any cat in
+  character.
 
 All AI runs on device. No network, no accounts, no third-party dependencies.
 
@@ -84,8 +85,11 @@ for seeding. DEBUG launch hooks (`SIMCTL_CHILD_<NAME>=…` with `xcrun simctl la
 | `FORCE_DOUBT=1` | Show the "curator hesitates" interstitial |
 | `AUTO_UNSEAL=1` / `AUTO_ADD=1` | Break the seal / add the lot without taps |
 | `NO_SPLASH=1` | Skip the opening wordmark |
-| `OPEN=<gallery\|catalogue\|dossier\|certificate\|audience\|lens>` | Start somewhere specific |
-| `SCROLL_DOWN=1` | Scroll Salon/Dossier to their lower sections |
+| `OPEN=<gallery\|hang\|concours\|match\|patron\|dossier\|groom\|certificate\|audience\|lens>` | Start somewhere specific |
+| `SEED_REPEAT=<n>` | Seed each photo in `SEED_DIR` n times |
+| `AUTO_MATCH=1` / `AUTO_PLAY=1` | Enter a concours with the suggested team / play every round |
+| `PATRON_XP=<n>` | Set the patron's XP at launch (unlock higher tiers) |
+| `SCROLL_DOWN=1` | Scroll the Dossier to its lower sections |
 
 ## Architecture
 
@@ -96,8 +100,10 @@ availability-gated; Liquid Glass falls back to materials before iOS 26. Shaders 
 ```
 CatDex/
   App/         entry, theme tokens, router, debug hooks, demo seeder
-  Models/      Acquisition (SwiftData), Marque, Swatch
-  Services/    cutout, perception, palette, appraiser, curators, audience, patronage, camera, motion
-  Components/  lot card, wax seal, guilloche, gold leaf, hallmark, glyph reveal
-  Views/       Root, Salon, Gallery, Dossier (+ certificate, audience), Acquire (lens, appraisal, unseal)
+  Models/      Acquisition, Ledger (SwiftData), Marque, Swatch
+  Services/    cutout, perception, palette, appraiser, curators, audience, camera, motion,
+               game (Game, Progression, Commission, Streak, Grooming), Concours rules
+  Components/  lot card, HUD, rosettes, rival busts, reward toasts, wax seal, guilloche
+  Views/       Root, Salon, Concours, Gallery, Dossier (+ certificate, audience), Patron,
+               Acquire (lens, appraisal, unseal)
 ```

@@ -27,16 +27,35 @@ final class AcquisitionFlowUITests: XCTestCase {
 
         let audience = app.buttons["Request an Audience"]
         XCTAssertTrue(audience.waitForExistence(timeout: 40), "the new lot's dossier should open")
-        XCTAssertTrue(app.staticTexts["Curator's Note".uppercased()].exists)
+        XCTAssertTrue(app.staticTexts["Curator's note"].exists)
 
         app.buttons["Back"].tap()
         if !app.buttons["Salon"].waitForExistence(timeout: 5) {
             let lines = app.debugDescription.split(separator: "\n").filter { $0.contains("Button") }.joined(separator: " | ")
             XCTFail("tab bar should return after leaving the dossier. Buttons: \(lines)")
         }
-        app.buttons["Salon"].tap()
+        app.buttons["Patron"].tap()
         XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Patron card'")).firstMatch
             .waitForExistence(timeout: 5))
+    }
+
+    func testConcoursPlaysThroughToAVerdict() {
+        let app = XCUIApplication()
+        app.launchEnvironment = [
+            "RESET": "1",
+            "NO_SPLASH": "1",
+            "SEED_DIR": (fixture("fixture-cat.jpg") as NSString).deletingLastPathComponent,
+            "SEED_REPEAT": "3",
+            "OPEN": "match",
+            "AUTO_MATCH": "1",
+            "AUTO_PLAY": "1",
+        ]
+        app.launch()
+
+        let verdict = app.staticTexts.matching(NSPredicate(format: "label == 'Best in show' OR label == 'Runner-up'")).firstMatch
+        XCTAssertTrue(verdict.waitForExistence(timeout: 40), "the match should reach a verdict")
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.buttons["Shows"].waitForExistence(timeout: 5))
     }
 
     func testAudienceRepliesInCharacter() {

@@ -1,14 +1,16 @@
 import SwiftUI
 
-/// An audience with a cat: correspondence, in character, written on device.
+/// An audience with a cat: a chat, in character, written on device.
 struct AudienceView: View {
     @Bindable var lot: Acquisition
     @Environment(\.dismiss) private var dismiss
+    @Environment(Game.self) private var game
     @State private var voice: AudienceVoice?
     @State private var letters: [Letter] = []
     @State private var draft = ""
     @State private var replying: String?
     @State private var isReplying = false
+    @State private var counted = false
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -16,21 +18,23 @@ struct AudienceView: View {
             header
             ScrollViewReader { reader in
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 22) {
-                        SmallCaps(Date.now.formatted(Format.editorialDate), size: 8.5, color: Theme.mute, tracking: 2)
+                    LazyVStack(alignment: .leading, spacing: 12) {
+                        Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide)))
+                            .font(Theme.caption(11))
+                            .foregroundStyle(Theme.ink3)
                             .frame(maxWidth: .infinity)
-                            .padding(.top, 18)
+                            .padding(.top, 12)
                         ForEach(letters) { letter in
-                            LetterView(letter: letter, catName: lot.name, marque: lot.marque)
+                            LetterView(letter: letter, lot: lot)
                                 .id(letter.id)
                         }
                         if isReplying {
-                            CatLine(text: replying ?? "", catName: lot.name, marque: lot.marque, writing: true)
+                            CatLine(text: replying ?? "", lot: lot, writing: true)
                                 .id("replying")
                         }
-                        Color.clear.frame(height: 8).id("end")
+                        Color.clear.frame(height: 6).id("end")
                     }
-                    .padding(.horizontal, 22)
+                    .padding(.horizontal, 16)
                 }
                 .scrollIndicators(.hidden)
                 .scrollDismissesKeyboard(.interactively)
@@ -39,83 +43,63 @@ struct AudienceView: View {
             }
             composer
         }
-        .background(background)
+        .background(Theme.ground.ignoresSafeArea())
         .task { begin() }
     }
 
-    private var background: some View {
-        ZStack(alignment: .top) {
-            Theme.onyx
-            PaletteBackdrop(palette: lot.palette, animated: false)
-                .frame(height: 260)
-                .mask(LinearGradient(colors: [.white.opacity(0.7), .clear], startPoint: .top, endPoint: .bottom))
-                .blur(radius: 30)
-        }
-        .ignoresSafeArea()
-    }
-
     private var header: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle().fill(PaletteBackdrop.colors(for: lot.palette)[1])
-                CutoutArt(image: ImageStore.cutout(for: lot), isCameo: lot.isCameo, marque: lot.marque, shadow: false)
-                    .padding(lot.isCameo ? 0 : 5)
-                    .clipShape(Circle())
-                Circle().stroke(lot.marque.metal, lineWidth: 1.2)
-            }
-            .frame(width: 48, height: 48)
-            VStack(alignment: .leading, spacing: 3) {
-                SmallCaps("An audience with", size: 8, color: Theme.mute)
+        HStack(spacing: 12) {
+            Avatar(lot: lot, size: 42)
+            VStack(alignment: .leading, spacing: 1) {
                 Text(lot.name)
-                    .font(Theme.display(21))
-                    .foregroundStyle(Theme.ivory)
+                    .font(Theme.title(16))
+                    .foregroundStyle(Theme.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                HStack(spacing: 4) {
+                    Circle().fill(Theme.win).frame(width: 6, height: 6)
+                    Text(voice?.isAppleIntelligence == true ? "In character · Apple Intelligence" : "In character")
+                        .font(Theme.caption(11))
+                        .foregroundStyle(Theme.ink3)
+                }
             }
             Spacer()
             GlassIconButton(systemName: "xmark", label: "End the audience") { dismiss() }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 10)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(Theme.pearl.opacity(0.9))
         .overlay(alignment: .bottom) { Rectangle().fill(Theme.hairline).frame(height: 0.5) }
     }
 
     private var composer: some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 10) {
-                TextField("", text: $draft, prompt: Text("Write to \(lot.name.components(separatedBy: " ").last ?? lot.name)…").foregroundStyle(Theme.mute), axis: .vertical)
-                    .font(Theme.serif(16))
-                    .foregroundStyle(Theme.ivory)
-                    .lineLimit(1...4)
-                    .focused($focused)
-                    .submitLabel(.send)
-                    .onSubmit(send)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .maisonGlass(in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                Button(action: send) {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Theme.ink)
-                        .frame(width: 44, height: 44)
-                        .background(Circle().fill(canSend ? AnyShapeStyle(Theme.goldGradient) : AnyShapeStyle(Theme.smoke)))
-                }
-                .disabled(!canSend)
-                .accessibilityLabel("Send")
-                .accessibilityIdentifier("sendLetter")
-                .sensoryFeedback(.impact(weight: .light), trigger: letters.count)
+        HStack(spacing: 8) {
+            TextField("", text: $draft, prompt: Text("Message \(lot.name.components(separatedBy: " ").last ?? lot.name)").foregroundStyle(Theme.ink3), axis: .vertical)
+                .font(Theme.body(15))
+                .foregroundStyle(Theme.ink)
+                .lineLimit(1...4)
+                .focused($focused)
+                .submitLabel(.send)
+                .onSubmit(send)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Theme.surface))
+                .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(Theme.hairline, lineWidth: 0.5))
+            Button(action: send) {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(canSend ? AnyShapeStyle(Theme.roseGold) : AnyShapeStyle(Theme.ink3.opacity(0.4))))
             }
-            HStack(spacing: 5) {
-                Image(systemName: voice?.isAppleIntelligence == true ? "sparkles" : "pencil.and.scribble")
-                Text(voice?.isAppleIntelligence == true ? "In character, on device · Apple Intelligence" : "In character · the house voice")
-            }
-            .font(Theme.serifItalic(10.5))
-            .foregroundStyle(Theme.mute)
+            .disabled(!canSend)
+            .accessibilityLabel("Send")
+            .accessibilityIdentifier("sendLetter")
+            .sensoryFeedback(.impact(weight: .light), trigger: letters.count)
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 10)
-        .padding(.bottom, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Theme.pearl.opacity(0.95).ignoresSafeArea())
     }
 
     private var canSend: Bool { !draft.trimmed.isEmpty && !isReplying }
@@ -126,8 +110,7 @@ struct AudienceView: View {
         let voice = AudienceVoice(persona: Persona(lot), history: history)
         self.voice = voice
         if history.isEmpty {
-            let hello = Letter(author: .cat, text: voice.greeting())
-            letters = [hello]
+            letters = [Letter(author: .cat, text: voice.greeting())]
             lot.correspondence = letters
         } else {
             letters = history
@@ -141,8 +124,12 @@ struct AudienceView: View {
         letters.append(Letter(author: .patron, text: text))
         isReplying = true
         replying = ""
+        if !counted {
+            counted = true
+            game.recordAudience()
+        }
         Task {
-            try? await Task.sleep(for: .milliseconds(450))
+            try? await Task.sleep(for: .milliseconds(400))
             let reply = await voice.reply(to: text) { replying = $0 }
             withAnimation(.smooth) {
                 letters.append(Letter(author: .cat, text: reply.trimmed))
@@ -154,55 +141,70 @@ struct AudienceView: View {
     }
 }
 
+/// The cat's portrait in a coat-tinted circle.
+struct Avatar: View {
+    let lot: Acquisition
+    var size: CGFloat = 40
+
+    var body: some View {
+        ZStack {
+            Circle().fill(PaletteBackdrop.colors(for: lot.palette, marque: lot.marque)[0])
+            CutoutArt(image: ImageStore.cutout(for: lot), isCameo: lot.isCameo, marque: lot.marque, shadow: false)
+                .padding(lot.isCameo ? 0 : size * 0.1)
+                .clipShape(Circle())
+            Circle().stroke(lot.marque.metal, lineWidth: 1.5)
+        }
+        .frame(width: size, height: size)
+    }
+}
+
 struct LetterView: View {
     let letter: Letter
-    let catName: String
-    let marque: Marque
+    let lot: Acquisition
 
     var body: some View {
         switch letter.author {
         case .cat:
-            CatLine(text: letter.text, catName: catName, marque: marque, writing: false)
+            CatLine(text: letter.text, lot: lot, writing: false)
         case .patron:
             HStack {
                 Spacer(minLength: 60)
                 Text(letter.text)
-                    .font(Theme.serif(15.5))
-                    .foregroundStyle(Theme.ivory)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
-                    .maisonGlass(in: RoundedRectangle(cornerRadius: 18, style: .continuous), tint: Theme.champagne)
+                    .font(Theme.body(15))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Theme.roseGold))
             }
             .transition(.move(edge: .trailing).combined(with: .opacity))
         }
     }
 }
 
-/// The cat's reply, set like a handwritten note with a gilded initial.
+/// The cat's reply bubble.
 struct CatLine: View {
     let text: String
-    let catName: String
-    let marque: Marque
+    let lot: Acquisition
     var writing: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Rectangle()
-                .fill(LinearGradient(colors: [marque.accent, marque.accent.opacity(0)], startPoint: .top, endPoint: .bottom))
-                .frame(width: 1)
-            VStack(alignment: .leading, spacing: 6) {
-                SmallCaps(catName, size: 8.5, color: marque.accent.opacity(0.9), tracking: 2)
+        HStack(alignment: .bottom, spacing: 8) {
+            Avatar(lot: lot, size: 28)
+            Group {
                 if text.isEmpty && writing {
                     Quill()
                 } else {
                     Text(text)
-                        .font(Theme.serifItalic(18))
-                        .foregroundStyle(Theme.ivory)
-                        .lineSpacing(3)
+                        .font(Theme.body(15))
+                        .foregroundStyle(Theme.ink)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Spacer(minLength: 30)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Theme.hairline, lineWidth: 0.5))
+            Spacer(minLength: 40)
         }
         .transition(.opacity)
         .accessibilityElement(children: .combine)
@@ -210,20 +212,20 @@ struct CatLine: View {
     }
 }
 
-/// Three gilded dots — the cat is composing.
+/// Three dots — the cat is composing.
 struct Quill: View {
     var body: some View {
         TimelineView(.animation) { context in
             let t = context.date.timeIntervalSinceReferenceDate
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
                 ForEach(0..<3) { i in
                     Circle()
-                        .fill(Theme.champagne)
-                        .frame(width: 5, height: 5)
+                        .fill(Theme.rose)
+                        .frame(width: 6, height: 6)
                         .opacity(0.3 + 0.7 * max(0, sin(t * 4 - Double(i) * 0.7)))
                 }
             }
-            .frame(height: 22)
+            .frame(height: 20)
         }
         .accessibilityLabel("Writing")
     }

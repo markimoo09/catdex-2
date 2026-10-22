@@ -113,38 +113,79 @@ enum Marque: String, Codable, CaseIterable, Identifiable, Comparable {
         }
     }
 
-    // MARK: Colour
+    // MARK: Game values
 
-    /// Signature metal tone.
-    var tone: Color {
+    /// Patron XP for acquiring a lot of this marque.
+    var xp: Int {
         switch self {
-        case .ivory: Color(hex: 0xE9E1D1)
-        case .silver: Color(hex: 0xC5CBD3)
-        case .gold: Color(hex: 0xD6AE62)
-        case .platinum: Color(hex: 0xDCDFE6)
-        case .noir: Color(hex: 0x1A1A1C)
+        case .ivory: 40
+        case .silver: 60
+        case .gold: 100
+        case .platinum: 160
+        case .noir: 260
         }
     }
 
-    /// Ink used on top of `tone`.
-    var toneInk: Color {
-        self == .noir ? Theme.goldLight : Color(hex: 0x1A1612)
+    /// Guineas paid to the patron when the lot is entered.
+    var finderFee: Int {
+        switch self {
+        case .ivory: 60
+        case .silver: 120
+        case .gold: 250
+        case .platinum: 500
+        case .noir: 1_000
+        }
     }
 
-    /// A metal gradient for hallmarks, rules and seals.
+    /// Bonus points a cat of this marque brings to every concours round.
+    var flair: Int {
+        switch self {
+        case .ivory: 0
+        case .silver: 2
+        case .gold: 4
+        case .platinum: 6
+        case .noir: 9
+        }
+    }
+
+    // MARK: Colour (Pearl theme)
+
+    /// Soft fill for pills and chips.
+    var tone: Color {
+        switch self {
+        case .ivory: Color(hex: 0xF1E8D8)
+        case .silver: Color(hex: 0xE5E9EF)
+        case .gold: Color(hex: 0xF8EACB)
+        case .platinum: Color(hex: 0xECE8F7)
+        case .noir: Color(hex: 0x2A2430)
+        }
+    }
+
+    /// Ink used on top of `tone`, and for the marque's name.
+    var toneInk: Color {
+        switch self {
+        case .ivory: Color(hex: 0x8A7150)
+        case .silver: Color(hex: 0x56626F)
+        case .gold: Color(hex: 0x946818)
+        case .platinum: Color(hex: 0x5D5891)
+        case .noir: Theme.roseLight
+        }
+    }
+
+    /// A metal gradient for hallmarks, frames and seals.
     var metal: LinearGradient {
         let stops: [Color]
         switch self {
         case .ivory:
-            stops = [Color(hex: 0xF7F1E6), Color(hex: 0xE2D7C2), Color(hex: 0xC9BBA0), Color(hex: 0xEDE4D3)]
+            stops = [Color(hex: 0xFBF6EC), Color(hex: 0xE6D9BF), Color(hex: 0xC9B48E), Color(hex: 0xF1E7D4)]
         case .silver:
-            stops = [Color(hex: 0xF4F6F8), Color(hex: 0xB9C0C9), Color(hex: 0x7F8894), Color(hex: 0xDDE2E8)]
+            stops = [Color(hex: 0xF7F8FA), Color(hex: 0xC4CBD4), Color(hex: 0x8D97A3), Color(hex: 0xE1E5EB)]
         case .gold:
-            stops = [Theme.goldLight, Theme.gold, Theme.goldDeep, Color(hex: 0xE8CF94)]
+            stops = [Color(hex: 0xF8E5B4), Color(hex: 0xE2B65C), Color(hex: 0xB7882C), Color(hex: 0xF0D38C)]
         case .platinum:
-            stops = [Color(hex: 0xFFFFFF), Color(hex: 0xD7DCE6), Color(hex: 0xB9C3D8), Color(hex: 0xE9DDF0), Color(hex: 0xD6E8E4)]
+            stops = [Color(hex: 0xFFFFFF), Color(hex: 0xDCD9F0), Color(hex: 0xB6BEE0), Color(hex: 0xF0DDEB), Color(hex: 0xD3EAE6)]
         case .noir:
-            stops = [Color(hex: 0x3A3631), Color(hex: 0x0B0B0C), Color(hex: 0x24211D), Color(hex: 0x0B0B0C)]
+            stops = [Color(hex: 0x4D4252), Color(hex: 0x231D27), Color(hex: 0x3A3040), Color(hex: 0x1C171F)]
         }
         return LinearGradient(colors: stops, startPoint: .topLeading, endPoint: .bottomTrailing)
     }
@@ -152,22 +193,22 @@ enum Marque: String, Codable, CaseIterable, Identifiable, Comparable {
     /// Wax colour for the envelope seal.
     var wax: (light: Color, base: Color, deep: Color) {
         switch self {
-        case .ivory: (Color(hex: 0xF1E6D2), Color(hex: 0xD8C7A8), Color(hex: 0xA8956F))
-        case .silver: (Color(hex: 0xE6EAF0), Color(hex: 0xA9B2BE), Color(hex: 0x6C7682))
-        case .gold: (Color(hex: 0xF5DC9C), Color(hex: 0xC9973E), Color(hex: 0x7E5A1E))
-        case .platinum: (Color(hex: 0xF3F0FA), Color(hex: 0xC4C8DA), Color(hex: 0x8A8FA8))
-        case .noir: (Color(hex: 0x4A4540), Color(hex: 0x161514), Color(hex: 0x050505))
+        case .ivory: (Color(hex: 0xF6EDDC), Color(hex: 0xDCC9A6), Color(hex: 0xA8916A))
+        case .silver: (Color(hex: 0xEEF1F5), Color(hex: 0xAEB7C3), Color(hex: 0x6E7886))
+        case .gold: (Color(hex: 0xF8E0A0), Color(hex: 0xD3A143), Color(hex: 0x8A621F))
+        case .platinum: (Color(hex: 0xF6F2FC), Color(hex: 0xC8C6E2), Color(hex: 0x8A87AE))
+        case .noir: (Color(hex: 0x5A4C5E), Color(hex: 0x2A2430), Color(hex: 0x120E14))
         }
     }
 
-    /// Accent used for the marque's name in chrome.
+    /// Accent for highlights, glows and bursts.
     var accent: Color {
         switch self {
-        case .ivory: Color(hex: 0xE9E1D1)
-        case .silver: Color(hex: 0xCDD4DD)
-        case .gold: Theme.gold
-        case .platinum: Color(hex: 0xE4E6F0)
-        case .noir: Theme.goldLight
+        case .ivory: Color(hex: 0xC9B48E)
+        case .silver: Color(hex: 0x9AA6B4)
+        case .gold: Color(hex: 0xE2B65C)
+        case .platinum: Color(hex: 0xA9A4DA)
+        case .noir: Theme.rose
         }
     }
 }

@@ -148,22 +148,18 @@ final class PatronageTests: XCTestCase {
         Calendar(identifier: .gregorian).date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour))!
     }
 
-    func testEmptyCollectionIsAVisitor() {
-        let p = Patronage(lots: [])
-        XCTAssertEqual(p.tier.name, "Visitor")
-        XCTAssertEqual(p.appraisal, 0)
-        XCTAssertEqual(p.completedExhibitions, 0)
+    func testEmptyCollectionHasNoValue() {
+        let stats = CollectionStats(lots: [])
+        XCTAssertEqual(stats.appraisal, 0)
+        XCTAssertEqual(stats.lotCount, 0)
+        XCTAssertEqual(stats.completedExhibitions, 0)
     }
 
-    func testPrestigeClimbsTiers() {
+    func testCollectionStatsSumValuations() {
         let lots = [Marque.noir, .gold, .ivory].map {
             LotSummary(marque: $0, acquiredAt: date(1, 12), valuation: 1000, isMonochrome: false)
         }
-        let p = Patronage(lots: lots)
-        XCTAssertEqual(p.prestige, 21)
-        XCTAssertEqual(p.tier.name, "Patron")
-        XCTAssertEqual(p.nextTier?.name, "Benefactor")
-        XCTAssertEqual(p.appraisal, 3000)
+        XCTAssertEqual(CollectionStats(lots: lots).appraisal, 3000)
     }
 
     func testExhibitionsTrackTimeOfDayAndDays() {

@@ -2,27 +2,35 @@ import SwiftUI
 
 // MARK: - Hallmark
 
-/// A tiny assay stamp: lozenge cartouche with the marque's letter.
+/// A tiny assay stamp: a metal lozenge with the marque's letter.
 struct Hallmark: View {
     let marque: Marque
-    var size: CGFloat = 22
+    var size: CGFloat = 20
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.18, style: .continuous)
+            RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)
                 .fill(marque.metal)
-            RoundedRectangle(cornerRadius: size * 0.14, style: .continuous)
-                .stroke(marque.toneInk.opacity(0.45), lineWidth: max(0.5, size * 0.04))
+            RoundedRectangle(cornerRadius: size * 0.15, style: .continuous)
+                .stroke(Color.white.opacity(0.6), lineWidth: max(0.5, size * 0.04))
                 .padding(size * 0.1)
             Text(marque.stamp)
-                .font(Theme.display(size * 0.56))
-                .foregroundStyle(marque.toneInk)
+                .font(.system(size: size * 0.5, weight: .heavy, design: .rounded))
+                .foregroundStyle(marque == .noir ? Theme.roseLight : marque.toneInk)
                 .rotationEffect(.degrees(-45))
         }
         .frame(width: size, height: size)
         .rotationEffect(.degrees(45))
-        .shadow(color: .black.opacity(0.35), radius: 2, y: 1)
+        .shadow(color: Color(hex: 0x5A3A30, alpha: 0.25), radius: 2, y: 1)
         .accessibilityLabel("\(marque.displayName) marque")
+    }
+}
+
+/// The marque as a coloured pill.
+struct MarquePill: View {
+    let marque: Marque
+    var body: some View {
+        Pill(text: marque.displayName, fill: marque.tone, ink: marque.toneInk)
     }
 }
 
@@ -59,28 +67,27 @@ struct CutoutArt: View {
                 .scaledToFill()
                 .frame(minWidth: 0, maxWidth: .infinity, minHeight: 0, maxHeight: .infinity)
                 .clipShape(ArchShape())
-                .overlay(ArchShape().stroke(marque.metal, lineWidth: 1.5).padding(-5))
-                .overlay(ArchShape().stroke(marque.accent.opacity(0.4), lineWidth: 0.5).padding(-9))
+                .overlay(ArchShape().stroke(Color.white, lineWidth: 3))
+                .overlay(ArchShape().stroke(marque.metal, lineWidth: 1.5).padding(-4))
                 .aspectRatio(3 / 4, contentMode: .fit)
-                .padding(10)
-                .shadow(color: .black.opacity(shadow ? 0.5 : 0), radius: 24, y: 14)
+                .padding(8)
+                .shadow(color: Color(hex: 0x5A3A30, alpha: shadow ? 0.25 : 0), radius: 14, y: 8)
         } else {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
-                .shadow(color: .black.opacity(shadow ? 0.55 : 0), radius: 18, y: 16)
+                .shadow(color: Color(hex: 0x5A3A30, alpha: shadow ? 0.28 : 0), radius: 12, y: 10)
         }
     }
 }
 
 // MARK: - Spotlight
 
+/// An elliptical pool of light from above that always fades out before the edges.
 struct Spotlight: View {
     var color: Color = .white
-    var intensity: Double = 0.16
+    var intensity: Double = 0.6
 
-    /// An elliptical pool of light from above that always fades to nothing
-    /// before the edges, so it never shows a box.
     var body: some View {
         GeometryReader { proxy in
             let w = proxy.size.width, h = proxy.size.height
@@ -98,9 +105,10 @@ struct Spotlight: View {
 
 // MARK: - Palette backdrop
 
-/// A slowly breathing mesh gradient made from the cat's own coat.
+/// A slowly breathing mesh gradient: the cat's own coat, washed toward pearl.
 struct PaletteBackdrop: View {
     let palette: [Swatch]
+    var marque: Marque = .ivory
     var animated: Bool = true
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -115,7 +123,7 @@ struct PaletteBackdrop: View {
     }
 
     private func mesh(t: Double) -> some View {
-        let c = Self.colors(for: palette)
+        let c = Self.colors(for: palette, marque: marque)
         let wobble = Float(sin(t * 0.35)) * 0.08
         let wobble2 = Float(cos(t * 0.27)) * 0.07
         return MeshGradient(
@@ -125,43 +133,39 @@ struct PaletteBackdrop: View {
                 [0, 0.5 + wobble2], [0.5 - wobble, 0.45 + wobble2], [1, 0.5 - wobble2],
                 [0, 1], [0.5 + wobble2, 1], [1, 1],
             ],
-            colors: [
-                c[3], c[1], c[3],
-                c[2], c[0], c[2],
-                c[4], c[2], c[4],
-            ]
+            colors: [c[3], c[1], c[3], c[2], c[0], c[2], c[4], c[2], c[4]]
         )
     }
 
-    /// Centre, mid, edge, corner, deep-corner. Dark cats get a lifted, luminous
-    /// backdrop so they never vanish into it; light cats get a deep one.
-    static func colors(for palette: [Swatch]) -> [Color] {
+    /// Centre, mid, edge, corner, far corner. Noir lots keep a deep plum
+    /// ground — the rarest cards are the dark ones.
+    static func colors(for palette: [Swatch], marque: Marque = .ivory) -> [Color] {
         let swatches = palette.isEmpty ? Swatch.houseDefault : palette
-        let lum = swatches.reduce(0.0) { $0 + $1.luminance * $1.share } / max(0.0001, swatches.reduce(0.0) { $0 + $1.share })
         let primary = swatches[0]
         let accent = swatches.count > 1 ? swatches[1] : primary
         let third = swatches.count > 2 ? swatches[2] : accent
 
-        if lum < 0.22 {
-            // Lift: champagne-tinted mid-tones around a dark subject.
-            let champagne = SIMD3<Double>(0.85, 0.76, 0.6)
-            func lift(_ s: Swatch, _ amt: Double, _ brightness: Double) -> Color {
-                let mixed = SIMD3(s.red, s.green, s.blue) * (1 - amt) + champagne * amt
-                return Color(.sRGB, red: mixed.x * brightness, green: mixed.y * brightness, blue: mixed.z * brightness)
-            }
-            return [lift(accent, 0.7, 0.62), lift(third, 0.6, 0.45), lift(primary, 0.55, 0.32),
-                    lift(primary, 0.4, 0.18), Color(hex: 0x0A0A0B)]
+        func mix(_ s: Swatch, with base: SIMD3<Double>, _ amount: Double) -> Color {
+            let m = SIMD3(s.red, s.green, s.blue) * (1 - amount) + base * amount
+            return Color(.sRGB, red: m.x, green: m.y, blue: m.z)
         }
-        return [
-            primary.deepened(0.45), accent.deepened(0.6), third.deepened(0.72),
-            primary.deepened(0.84), Color(hex: 0x070708),
-        ]
+
+        if marque == .noir {
+            let plum = SIMD3<Double>(0.16, 0.13, 0.19)
+            return [mix(primary, with: plum, 0.55), mix(accent, with: plum, 0.7), mix(third, with: plum, 0.8),
+                    mix(primary, with: plum, 0.88), Color(hex: 0x1C171F)]
+        }
+        let pearl = SIMD3<Double>(0.99, 0.96, 0.94)
+        let blush = SIMD3<Double>(0.97, 0.88, 0.85)
+        let lilac = SIMD3<Double>(0.92, 0.9, 0.97)
+        return [mix(accent, with: pearl, 0.62), mix(primary, with: blush, 0.55), mix(third, with: pearl, 0.7),
+                mix(primary, with: lilac, 0.6), mix(accent, with: blush, 0.72)]
     }
 }
 
 // MARK: - Foil
 
-/// Tilt-tracking foil sheen, composited over art. Reads Motion from the environment.
+/// Tilt-tracking foil sheen over art. Overlay-blended on light cards, additive on Noir.
 struct FoilSheen: View {
     var strength: Double
     var hueShift: Double = 0
@@ -185,7 +189,7 @@ struct FoilSheen: View {
                     .float(Float(warmth))
                 ))
             }
-            .blendMode(.plusLighter)
+            .blendMode(marque == .noir ? .plusLighter : .overlay)
             .allowsHitTesting(false)
             .accessibilityHidden(true)
     }
@@ -250,7 +254,7 @@ struct GlyphReveal: TextRenderer, Animatable {
 
 struct Ticker: View {
     let value: Int
-    var font: Font = Theme.numerals(28)
+    var font: Font = Theme.number(26)
     var suffix: String = " gns"
 
     var body: some View {

@@ -1,4 +1,4 @@
-// Renders the CatDex Maison app icon (1024×1024) on the host Mac.
+// Renders the CatDex Maison app icon (1024×1024, Pearl theme) on the host Mac.
 // Usage: swift scripts/make-icon.swift CatDex/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png
 import AppKit
 import CoreGraphics
@@ -20,8 +20,8 @@ func rgb(_ hex: UInt32, _ a: CGFloat = 1) -> CGColor {
 
 let center = CGPoint(x: 512, y: 512)
 
-// Onyx field with a warm center.
-let field = CGGradient(colorsSpace: space, colors: [rgb(0x221E1A), rgb(0x0E0D0C), rgb(0x060606)] as CFArray,
+// Pearl field washing into blush.
+let field = CGGradient(colorsSpace: space, colors: [rgb(0xFFFBF7), rgb(0xF8E7DF), rgb(0xEFE3EF)] as CFArray,
                        locations: [0, 0.6, 1])!
 ctx.drawRadialGradient(field, startCenter: center, startRadius: 0, endCenter: center, endRadius: 760, options: [])
 
@@ -40,13 +40,13 @@ for ring in 0..<3 {
         }
         path.closeSubpath()
         ctx.addPath(path)
-        ctx.setStrokeColor(rgb(0xD9C29A, 0.07))
+        ctx.setStrokeColor(rgb(0xD4927E, 0.16))
         ctx.strokePath()
     }
 }
 
 // Double hairline ring.
-ctx.setStrokeColor(rgb(0xD9C29A, 0.85))
+ctx.setStrokeColor(rgb(0xD4927E, 0.85))
 ctx.setLineWidth(4)
 ctx.strokeEllipse(in: CGRect(x: 512 - 430, y: 512 - 430, width: 860, height: 860))
 ctx.setLineWidth(1.5)
@@ -69,9 +69,9 @@ head.addQuadCurve(to: CGPoint(x: 724, y: 560), control: CGPoint(x: 724, y: 300))
 head.closeSubpath()
 
 ctx.saveGState()
-ctx.setShadow(offset: CGSize(width: 0, height: 18), blur: 40, color: rgb(0x000000, 0.7))
+ctx.setShadow(offset: CGSize(width: 0, height: 18), blur: 40, color: rgb(0x8A5A50, 0.35))
 ctx.addPath(head)
-ctx.setFillColor(rgb(0xC9A45C))
+ctx.setFillColor(rgb(0xD4927E))
 ctx.fillPath(using: .winding)
 ctx.restoreGState()
 
@@ -79,13 +79,13 @@ ctx.saveGState()
 ctx.addPath(head)
 ctx.clip(using: .winding)
 let gold = CGGradient(colorsSpace: space,
-                      colors: [rgb(0xF6E7C4), rgb(0xD9B66E), rgb(0x9C7434), rgb(0xD4AE66), rgb(0xF3E2BA)] as CFArray,
+                      colors: [rgb(0xF8DCCD), rgb(0xE5A893), rgb(0xC27F6A), rgb(0xDA9984), rgb(0xF4D0C0)] as CFArray,
                       locations: [0, 0.3, 0.55, 0.78, 1])!
 ctx.drawLinearGradient(gold, start: CGPoint(x: 280, y: 260), end: CGPoint(x: 760, y: 800), options: [])
 ctx.restoreGState()
 
 // Serene closed eyes and a small nose, engraved into the gold.
-ctx.setStrokeColor(rgb(0x2A1E10, 0.9))
+ctx.setStrokeColor(rgb(0x4A2E36, 0.9))
 ctx.setLineWidth(14)
 ctx.setLineCap(.round)
 for x in [418.0, 606.0] {
@@ -101,7 +101,7 @@ nose.addLine(to: CGPoint(x: 530, y: 648))
 nose.addLine(to: CGPoint(x: 512, y: 670))
 nose.closeSubpath()
 ctx.addPath(nose)
-ctx.setFillColor(rgb(0x2A1E10, 0.9))
+ctx.setFillColor(rgb(0x4A2E36, 0.9))
 ctx.fillPath()
 
 let image = ctx.makeImage()!

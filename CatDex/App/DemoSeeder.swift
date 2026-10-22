@@ -8,6 +8,7 @@ enum DemoSeeder {
     static func prepare(_ context: ModelContext) {
         guard DebugHooks.reset else { return }
         try? context.delete(model: Acquisition.self)
+        try? context.delete(model: Ledger.self)
         try? context.save()
     }
 
@@ -22,15 +23,16 @@ enum DemoSeeder {
         let files = ((try? FileManager.default.contentsOfDirectory(at: url, includingPropertiesForKeys: nil)) ?? [])
             .filter { ["jpg", "jpeg", "png", "heic"].contains($0.pathExtension.lowercased()) && !$0.lastPathComponent.contains("-cutout") }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let photos = Array(repeating: files, count: max(1, DebugHooks.seedRepeat)).flatMap { $0 }
         let marques = DebugHooks.seedMarques
 
-        for (index, file) in files.enumerated() {
+        for (index, file) in photos.enumerated() {
             guard let original = UIImage(contentsOfFile: file.path) else { continue }
             let cutURL = file.deletingLastPathComponent()
                 .appendingPathComponent(file.deletingPathExtension().lastPathComponent + "-cutout.png")
             let precut = UIImage(contentsOfFile: cutURL.path)
             // Spread acquisitions over recent days and hours for a lived-in collection.
-            let date = Calendar.current.date(byAdding: .hour, value: -(files.count - index) * 19, to: .now) ?? .now
+            let date = Calendar.current.date(byAdding: .hour, value: -(photos.count - index) * 19, to: .now) ?? .now
             let session = AppraisalSession(
                 original: original, lotNumber: index + 1, recent: [], acquiredAt: date, precut: precut,
                 forcedMarque: index < marques.count ? marques[index] : nil

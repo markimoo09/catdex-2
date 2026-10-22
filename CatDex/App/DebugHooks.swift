@@ -15,6 +15,8 @@ enum DebugHooks {
     static var reset: Bool { env("RESET") == "1" }
     /// Folder of `<name>.jpg` (+ optional `<name>-cutout.png`) to seed as lots.
     static var seedDirectory: String? { env("SEED_DIR") }
+    /// Seed each photo in `SEED_DIR` this many times (UI tests need a team of three).
+    static var seedRepeat: Int { env("SEED_REPEAT").flatMap(Int.init) ?? 1 }
     /// Comma-separated marques assigned to seeded lots in order.
     static var seedMarques: [Marque] {
         (env("SEED_MARQUES") ?? "").split(separator: ",").compactMap { Marque(rawValue: String($0)) }
@@ -33,8 +35,14 @@ enum DebugHooks {
     static var autoAdd: Bool { env("AUTO_ADD") == "1" }
     /// Skip the opening wordmark.
     static var noSplash: Bool { env("NO_SPLASH") == "1" }
-    /// Start somewhere specific: gallery, catalogue, dossier, certificate, audience, lens.
+    /// Start somewhere specific: gallery, hang, concours, match, patron, dossier, certificate, audience, groom, lens.
     static var open: String? { env("OPEN") }
+    /// Enter the concours straight away with the suggested team.
+    static var autoMatch: Bool { env("AUTO_MATCH") == "1" }
+    /// Play every round automatically (best cat for the category).
+    static var autoPlay: Bool { env("AUTO_PLAY") == "1" }
+    /// Set the patron's XP at launch (unlock higher show tiers).
+    static var patronXP: Int? { env("PATRON_XP").flatMap(Int.init) }
     /// Scroll a screen to its lower content (synthesised scrolls are unreliable on the Simulator).
     static var scrollDown: Bool { env("SCROLL_DOWN") == "1" }
 }

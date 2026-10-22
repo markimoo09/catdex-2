@@ -1,6 +1,5 @@
 import Foundation
 import SwiftData
-import UIKit
 
 /// A cat entered into the collection.
 @Model
@@ -42,6 +41,11 @@ final class Acquisition {
     @Attribute(.externalStorage) var cutoutData: Data
     @Attribute(.externalStorage) var originalData: Data
     var correspondenceData: Data?
+
+    // Game record — defaulted so existing collections migrate.
+    var showWins: Int = 0
+    var showRounds: Int = 0
+    var groomings: Int = 0
 
     init(
         id: UUID = UUID(),
@@ -107,6 +111,22 @@ final class Acquisition {
     }
 
     var fullTitle: String { "\(name), \(epithet)" }
+
+    /// Show experience: +1 to every round for each three rounds won, up to +5.
+    var showExperience: Int { min(5, showWins / 3) }
+
+    /// Grooming raises one trait; rarer marques can be groomed higher.
+    func groom(_ trait: Temperament.Trait, by amount: Int) {
+        let cap = 100
+        switch trait {
+        case .poise: poise = min(cap, poise + amount)
+        case .charm: charm = min(cap, charm + amount)
+        case .mischief: mischief = min(cap, mischief + amount)
+        case .languor: languor = min(cap, languor + amount)
+        case .curiosity: curiosity = min(cap, curiosity + amount)
+        }
+        groomings += 1
+    }
 }
 
 /// Five temperament readings, 0...100.

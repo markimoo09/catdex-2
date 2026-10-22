@@ -1,74 +1,63 @@
 import SwiftUI
 
-/// Maison design tokens — noir chrome, champagne-gold hairlines, ivory type.
+/// Pearl design tokens — pearl and blush grounds, plum ink, rose-gold accents, SF Pro.
 enum Theme {
-    // MARK: Chrome
-    static let ink = Color(hex: 0x0A0A0B)
-    static let onyx = Color(hex: 0x121214)
-    static let graphite = Color(hex: 0x1B1B1E)
-    static let smoke = Color(hex: 0x2A2A2E)
-    static let hairline = Color.white.opacity(0.10)
+    // MARK: Grounds
+    static let pearl = Color(hex: 0xFBF7F2)
+    static let blush = Color(hex: 0xF8E6DE)
+    static let lilac = Color(hex: 0xEEE8F6)
+    static let champagne = Color(hex: 0xF6ECDD)
+    static let surface = Color.white
+    static let surfaceSunk = Color(hex: 0xF4EEE8)
 
-    // MARK: Type colours
-    static let ivory = Color(hex: 0xF3EEE4)
-    static let parchment = Color(hex: 0xC9C2B6)
-    static let mute = Color(hex: 0x8A847A)
+    // MARK: Ink
+    static let ink = Color(hex: 0x2A2430)
+    static let ink2 = Color(hex: 0x6E6370)
+    static let ink3 = Color(hex: 0xA59AA2)
+    static let hairline = Color(hex: 0x2A2430, alpha: 0.08)
 
-    // MARK: Metals
-    static let champagne = Color(hex: 0xD9C29A)
-    static let gold = Color(hex: 0xC9A45C)
-    static let goldDeep = Color(hex: 0x8C6A2F)
-    static let goldLight = Color(hex: 0xF3E4C0)
+    // MARK: Accents
+    static let rose = Color(hex: 0xD4927E)
+    static let roseDeep = Color(hex: 0xB0705D)
+    static let roseLight = Color(hex: 0xF4D5C7)
+    static let coin = Color(hex: 0xE3B355)
+    static let coinDeep = Color(hex: 0xB9842B)
+    static let win = Color(hex: 0x6FA584)
+    static let loss = Color(hex: 0xCF6E68)
 
     // MARK: Paper (certificate)
-    static let paper = Color(hex: 0xF4EFE4)
-    static let paperShade = Color(hex: 0xE6DECD)
-    static let inkOnPaper = Color(hex: 0x1D1A16)
+    static let paper = Color(hex: 0xFBF6EC)
+    static let paperShade = Color(hex: 0xEEE3D0)
 
-    static let goldGradient = LinearGradient(
-        colors: [goldLight, gold, goldDeep, gold, goldLight],
+    static let roseGold = LinearGradient(
+        colors: [Color(hex: 0xF3CDBC), Color(hex: 0xD9967F), Color(hex: 0xC27F6A)],
         startPoint: .topLeading, endPoint: .bottomTrailing
     )
 
-    static let goldSheen = LinearGradient(
-        colors: [goldLight, champagne, gold],
+    static let coinGradient = LinearGradient(
+        colors: [Color(hex: 0xF7DE9C), coin, coinDeep],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
+
+    /// The app's ground: pearl washing into blush and lilac.
+    static let ground = LinearGradient(
+        colors: [pearl, Color(hex: 0xFAEEE8), Color(hex: 0xF1ECF7)],
         startPoint: .top, endPoint: .bottom
     )
 
-    // MARK: Type
-    /// Didot — high-contrast fashion display face.
-    static func display(_ size: CGFloat, relativeTo style: Font.TextStyle = .largeTitle) -> Font {
-        .custom("Didot", size: size, relativeTo: style)
+    // MARK: Type (SF Pro throughout)
+    static func display(_ size: CGFloat) -> Font { .system(size: size, weight: .bold) }
+    static func title(_ size: CGFloat) -> Font { .system(size: size, weight: .semibold) }
+    static func body(_ size: CGFloat = 15, weight: Font.Weight = .regular) -> Font { .system(size: size, weight: weight) }
+    static func caption(_ size: CGFloat = 12, weight: Font.Weight = .medium) -> Font { .system(size: size, weight: weight) }
+    /// Rounded figures for the game layer — coins, levels, scores.
+    static func number(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        .system(size: size, weight: weight, design: .rounded).monospacedDigit()
     }
+    /// The curator's signature on certificates.
+    static func signature(_ size: CGFloat) -> Font { .custom("SnellRoundhand-Bold", size: size) }
 
-    static func displayItalic(_ size: CGFloat, relativeTo style: Font.TextStyle = .title) -> Font {
-        .custom("Didot-Italic", size: size, relativeTo: style)
-    }
-
-    /// New York — book serif for prose.
-    static func serif(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: .serif)
-    }
-
-    static func serifItalic(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: .serif).italic()
-    }
-
-    /// Tracked small-caps labels. Pair with `.tracking(Theme.labelTracking)`.
-    static func label(_ size: CGFloat = 10, weight: Font.Weight = .semibold) -> Font {
-        .system(size: size, weight: weight, design: .default)
-    }
-
-    static let labelTracking: CGFloat = 2.4
-
-    /// Curator's hand.
-    static func script(_ size: CGFloat) -> Font {
-        .custom("SnellRoundhand-Bold", size: size)
-    }
-
-    static func numerals(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: .serif).monospacedDigit()
-    }
+    static let displayTracking: CGFloat = -0.5
 }
 
 extension Color {
@@ -83,119 +72,150 @@ extension Color {
     }
 }
 
-// MARK: - Small caps label
-
-struct SmallCaps: View {
-    let text: String
-    var size: CGFloat = 10
-    var color: Color = Theme.mute
-    var tracking: CGFloat = Theme.labelTracking
-
-    init(_ text: String, size: CGFloat = 10, color: Color = Theme.mute, tracking: CGFloat = Theme.labelTracking) {
-        self.text = text
-        self.size = size
-        self.color = color
-        self.tracking = tracking
-    }
-
-    var body: some View {
-        Text(text.uppercased())
-            .font(Theme.label(size))
-            .tracking(tracking)
-            .foregroundStyle(color)
-    }
-}
-
-// MARK: - Hairline rule with a lozenge
-
-struct OrnamentRule: View {
-    var color: Color = Theme.champagne.opacity(0.5)
-    var body: some View {
-        HStack(spacing: 10) {
-            Rectangle().fill(color).frame(height: 0.5)
-            Image(systemName: "diamond.fill")
-                .font(.system(size: 5))
-                .foregroundStyle(color)
-            Rectangle().fill(color).frame(height: 0.5)
-        }
-        .accessibilityHidden(true)
-    }
-}
-
-// MARK: - Liquid Glass with a material fallback
+// MARK: - Surfaces
 
 extension View {
-    /// iOS 26 Liquid Glass; ultra-thin material with a hairline on earlier systems.
+    /// A white card with a soft rose-tinted shadow.
+    func pearlCard(_ radius: CGFloat = 18, padding: CGFloat? = 14) -> some View {
+        self
+            .padding(padding ?? 0)
+            .background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(Theme.surface))
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).stroke(Theme.hairline, lineWidth: 0.5))
+            .shadow(color: Color(hex: 0x8A5A50, alpha: 0.10), radius: 14, y: 6)
+    }
+
+    /// iOS 26 Liquid Glass; a frosted white material before that.
     @ViewBuilder
-    func maisonGlass<S: Shape>(in shape: S, tint: Color? = nil, interactive: Bool = false) -> some View {
+    func maisonGlass<S: Shape>(in shape: S, tint: Color? = nil) -> some View {
         if #available(iOS 26.0, *) {
-            self.glassEffect(Self.glass(tint: tint, interactive: interactive), in: shape)
+            self.glassEffect(Self.glass(tint: tint), in: shape)
         } else {
             self
                 .background {
                     ZStack {
                         shape.fill(.ultraThinMaterial)
-                        if let tint { shape.fill(tint.opacity(0.18)) }
+                        shape.fill(Color.white.opacity(0.55))
+                        if let tint { shape.fill(tint.opacity(0.15)) }
                     }
                 }
-                .overlay(shape.stroke(Color.white.opacity(0.14), lineWidth: 0.5))
+                .overlay(shape.stroke(Color.white.opacity(0.9), lineWidth: 0.5))
         }
     }
 
     @available(iOS 26.0, *)
-    private static func glass(tint: Color?, interactive: Bool) -> Glass {
-        var glass = Glass.regular
-        if let tint { glass = glass.tint(tint.opacity(0.35)) }
-        if interactive { glass = glass.interactive() }
-        return glass
+    private static func glass(tint: Color?) -> Glass {
+        tint.map { Glass.regular.tint($0.opacity(0.3)) } ?? .regular
     }
+}
 
-    /// A faint film-grain texture over a surface.
-    func filmGrain(_ amount: Double = 0.05) -> some View {
-        overlay {
-            Rectangle()
-                .fill(.white)
-                .colorEffect(ShaderLibrary.grain(.float(Float(amount))))
-                .blendMode(.overlay)
-                .allowsHitTesting(false)
+// MARK: - Text pieces
+
+/// Section heading with an optional trailing note.
+struct SectionHeader: View {
+    let title: String
+    var trailing: String?
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(Theme.title(17))
+                .foregroundStyle(Theme.ink)
+            Spacer()
+            if let trailing {
+                Text(trailing)
+                    .font(Theme.caption(12))
+                    .foregroundStyle(Theme.ink3)
+            }
         }
+    }
+}
+
+/// A small rounded tag.
+struct Pill: View {
+    let text: String
+    var fill: Color = Theme.blush
+    var ink: Color = Theme.roseDeep
+    var symbol: String?
+
+    var body: some View {
+        HStack(spacing: 3) {
+            if let symbol { Image(systemName: symbol).font(.system(size: 9, weight: .bold)) }
+            Text(text)
+        }
+        .font(Theme.caption(10.5, weight: .semibold))
+        .foregroundStyle(ink)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(fill))
+    }
+}
+
+/// Guineas with the coin glyph.
+struct CoinAmount: View {
+    let value: Int
+    var size: CGFloat = 14
+    var signed = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            CoinGlyph(size: size * 1.05)
+            Text("\(signed && value > 0 ? "+" : "")\(value.formatted())")
+                .font(Theme.number(size))
+                .foregroundStyle(Theme.ink)
+                .contentTransition(.numericText(value: Double(value)))
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(value) guineas")
+    }
+}
+
+struct CoinGlyph: View {
+    var size: CGFloat = 14
+    var body: some View {
+        ZStack {
+            Circle().fill(Theme.coinGradient)
+            Circle().stroke(Theme.coinDeep.opacity(0.5), lineWidth: max(0.5, size * 0.06)).padding(size * 0.14)
+            Text("G")
+                .font(.system(size: size * 0.5, weight: .heavy, design: .rounded))
+                .foregroundStyle(Theme.coinDeep)
+        }
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
 }
 
 // MARK: - Buttons
 
-/// Primary call to action: champagne-gold lozenge.
-struct GoldButtonStyle: ButtonStyle {
+/// Primary call to action: rose-gold capsule.
+struct PrimaryButtonStyle: ButtonStyle {
+    var compact = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(Theme.label(12, weight: .bold))
-            .tracking(2.6)
-            .textCase(.uppercase)
-            .foregroundStyle(Theme.ink)
-            .padding(.horizontal, 28)
-            .frame(minHeight: 52)
-            .background(Capsule().fill(Theme.goldGradient))
-            .overlay(Capsule().stroke(Theme.goldLight.opacity(0.7), lineWidth: 0.5))
-            .shadow(color: Theme.gold.opacity(configuration.isPressed ? 0.15 : 0.35), radius: 18, y: 6)
+            .font(Theme.title(compact ? 14 : 16))
+            .foregroundStyle(.white)
+            .padding(.horizontal, compact ? 16 : 22)
+            .frame(minHeight: compact ? 38 : 48)
+            .background(Capsule().fill(Theme.roseGold))
+            .shadow(color: Theme.rose.opacity(configuration.isPressed ? 0.15 : 0.4), radius: 10, y: 5)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.spring(duration: 0.25), value: configuration.isPressed)
     }
 }
 
-/// Secondary: hairline capsule.
-struct HairlineButtonStyle: ButtonStyle {
-    var color: Color = Theme.champagne
+/// Secondary: white capsule with a hairline.
+struct SecondaryButtonStyle: ButtonStyle {
+    var compact = false
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(Theme.label(11, weight: .semibold))
-            .tracking(2.4)
-            .textCase(.uppercase)
-            .foregroundStyle(color)
-            .padding(.horizontal, 22)
-            .frame(minHeight: 46)
-            .background(Capsule().stroke(color.opacity(0.55), lineWidth: 0.75))
-            .contentShape(Capsule())
-            .opacity(configuration.isPressed ? 0.6 : 1)
+            .font(Theme.title(compact ? 14 : 16))
+            .foregroundStyle(Theme.ink)
+            .padding(.horizontal, compact ? 16 : 22)
+            .frame(minHeight: compact ? 38 : 48)
+            .background(Capsule().fill(Theme.surface))
+            .overlay(Capsule().stroke(Theme.hairline, lineWidth: 1))
+            .shadow(color: Color(hex: 0x8A5A50, alpha: 0.08), radius: 8, y: 3)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.spring(duration: 0.25), value: configuration.isPressed)
     }
 }
 
@@ -203,19 +223,29 @@ struct HairlineButtonStyle: ButtonStyle {
 struct GlassIconButton: View {
     let systemName: String
     var label: String
+    var dark = false
     var action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.ivory)
-                .frame(width: 44, height: 44)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(dark ? .white : Theme.ink)
+                .frame(width: 38, height: 38)
+                .background(Circle().fill(Color.white.opacity(dark ? 0 : 0.7)))
                 .maisonGlass(in: Circle())
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel(label)
+    }
+}
+
+struct PressScale: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1)
+            .animation(.spring(duration: 0.25, bounce: 0.4), value: configuration.isPressed)
     }
 }
 
@@ -230,6 +260,10 @@ enum Format {
         String(format: "Lot %03d", number)
     }
 
+    static func compact(_ value: Int) -> String {
+        value.formatted(.number.notation(.compactName).precision(.fractionLength(0...1)))
+    }
+
     static func estimate(_ value: Int) -> String {
         let low = Int((Double(value) * 0.8 / 100).rounded()) * 100
         let high = Int((Double(value) * 1.2 / 100).rounded()) * 100
@@ -237,5 +271,5 @@ enum Format {
     }
 
     static let longDate: Date.FormatStyle = .dateTime.day().month(.wide).year()
-    static let editorialDate: Date.FormatStyle = .dateTime.weekday(.wide).day().month(.wide)
+    static let shortDate: Date.FormatStyle = .dateTime.day().month(.abbreviated)
 }
